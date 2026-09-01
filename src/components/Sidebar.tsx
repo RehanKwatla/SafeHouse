@@ -17,14 +17,14 @@ const NAV_ITEMS: { id: PageId; label: string; icon: typeof LayoutGrid; code: str
 ];
 
 function SegmentedBar({ value, color }: { value: number; color: string }) {
-  const segments = 12;
+  const segments = 10;
   const filled = Math.round((value / 100) * segments);
   return (
     <div className="flex items-center gap-px">
       {Array.from({ length: segments }).map((_, i) => (
         <div
           key={i}
-          className={`w-2.5 h-1.5 ${i < filled ? color : 'bg-base-elevated'}`}
+          className={`w-2 h-1 ${i < filled ? color : 'bg-base-elevated'}`}
         />
       ))}
     </div>
@@ -44,20 +44,35 @@ function RobotStatusPanel() {
 
   return (
     <div className="px-3 py-3 border-t border-line">
-      {/* Section header */}
       <div className="flex items-center justify-between mb-3">
         <span className="section-title">ROBOT STATUS</span>
         <span className="text-3xs mono text-ink-faint">RVR-01</span>
       </div>
 
       {/* State block */}
-      <div className="bg-base px-3 py-2.5 mb-3 relative" style={{ borderLeft: '2px solid' , borderLeftColor: robot.state === 'PATROLLING' || robot.state === 'MOVING' ? '#A8F04D' : robot.state === 'IDLE' ? '#F2B84B' : '#3D4F55' }}>
+      <div
+        className="bg-base px-3 py-2.5 mb-3"
+        style={{
+          borderLeft: `2px solid ${
+            robot.state === 'PATROLLING' || robot.state === 'MOVING'
+              ? '#A8F04D'
+              : robot.state === 'IDLE'
+              ? '#F2B84B'
+              : '#3D4F55'
+          }`,
+        }}
+      >
         <div className="flex items-center justify-between mb-0.5">
           <div className="flex items-center gap-1.5">
-            <span className={`status-dot ${
-              robot.state === 'PATROLLING' || robot.state === 'MOVING' ? 'bg-green animate-pulse-green' :
-              robot.state === 'IDLE' ? 'bg-amber' : 'bg-ink-faint'
-            }`} />
+            <span
+              className={`status-dot ${
+                robot.state === 'PATROLLING' || robot.state === 'MOVING'
+                  ? 'bg-green animate-pulse-green'
+                  : robot.state === 'IDLE'
+                  ? 'bg-amber'
+                  : 'bg-ink-faint'
+              }`}
+            />
             <span className={`text-xs mono font-bold tracking-widest ${stateColor}`}>
               {robot.state}
             </span>
@@ -67,11 +82,12 @@ function RobotStatusPanel() {
 
         {robot.targetRoom !== null ? (
           <p className="text-2xs mono text-ink-muted">
-            ROOM {String(robot.currentRoom).padStart(2,'0')} → ROOM {String(robot.targetRoom).padStart(2,'0')}
+            ROOM {String(robot.currentRoom).padStart(2, '0')} → ROOM{' '}
+            {String(robot.targetRoom).padStart(2, '0')}
           </p>
         ) : (
           <p className="text-2xs mono text-ink-faint">
-            AT ROOM {String(robot.currentRoom).padStart(2,'0')}
+            AT ROOM {String(robot.currentRoom).padStart(2, '0')}
           </p>
         )}
 
@@ -131,7 +147,7 @@ function RobotStatusPanel() {
         </div>
       </div>
 
-      {/* Technical footer — small system identifiers */}
+      {/* System metadata footer */}
       <div className="mt-3 pt-2.5 border-t border-line flex items-center justify-between">
         <span className="text-3xs mono text-ink-faint">NODE 04</span>
         <span className="text-3xs mono text-ink-faint">SYS_OK</span>
@@ -178,7 +194,10 @@ export function Sidebar({ currentPage, onNavigate, isOpen, onClose }: SidebarPro
             return (
               <div
                 key={item.id}
-                onClick={() => { onNavigate(item.id); onClose(); }}
+                onClick={() => {
+                  onNavigate(item.id);
+                  onClose();
+                }}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />

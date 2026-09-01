@@ -19,14 +19,26 @@ export function RoomStatusPanel({ selectedRoom, onSelectRoom }: RoomStatusPanelP
       {/* Header */}
       <div className="panel-header bg-base-elevated">
         <span className="section-title">ROOM STATUS</span>
-        <div className="flex items-center gap-3">
-          {crit > 0 && <span className="text-2xs mono font-bold text-red">{crit} CRIT</span>}
-          {warn > 0 && <span className="text-2xs mono text-amber">{warn} WARN</span>}
-          <span className="text-2xs mono text-ink-faint">{safe}/{rooms.length} safe</span>
+        <div className="flex items-center gap-2">
+          {crit > 0 && (
+            <span className="flex items-center gap-1 text-2xs mono font-bold text-red">
+              <span className="status-dot bg-red" />
+              {crit}
+            </span>
+          )}
+          {warn > 0 && (
+            <span className="flex items-center gap-1 text-2xs mono text-amber">
+              <span className="status-dot bg-amber" />
+              {warn}
+            </span>
+          )}
+          <span className="text-2xs mono text-ink-faint">
+            {safe}/{rooms.length}
+          </span>
         </div>
       </div>
 
-      {/* Room modules — separated by thin lines, no padding gaps */}
+      {/* Rooms */}
       <div className="divide-y divide-line-faint overflow-y-auto scrollbar-thin flex-1">
         {rooms.map((room) => (
           <RoomCard
@@ -38,7 +50,7 @@ export function RoomStatusPanel({ selectedRoom, onSelectRoom }: RoomStatusPanelP
         ))}
       </div>
 
-      {/* Footer — system identifier */}
+      {/* Footer */}
       <div className="px-3 py-1.5 border-t border-line flex items-center justify-between">
         <span className="text-3xs mono text-ink-faint">SENSOR BUS NORMAL</span>
         <span className="text-3xs mono text-ink-faint">ZONE A</span>

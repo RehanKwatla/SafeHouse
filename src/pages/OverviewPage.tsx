@@ -26,25 +26,30 @@ export function OverviewPage({ onNavigateAlerts }: OverviewPageProps) {
 
   return (
     <div className="space-y-3">
-      {/* Top toolbar — minimal, not heading-heavy */}
+      {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="section-title text-ink">OVERVIEW</span>
-          <span className="text-3xs mono text-ink-faint">MISSION CONTROL · FULL SYSTEM STATUS</span>
+          <span className="text-3xs mono text-ink-faint hidden sm:inline">
+            MISSION CONTROL · FULL SYSTEM STATUS
+          </span>
         </div>
         <SimulationToggle />
       </div>
 
-      {/* Primary row: Patrol Map (dominant) + Room Status (supporting) */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-3">
-        <PatrolMap selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
+      {/* Primary: Hero Map + Room Status */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-3">
+        {/* Map dominates */}
+        <div style={{ minHeight: '420px' }} className="xl:min-h-[480px]">
+          <PatrolMap selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
+        </div>
         <RoomStatusPanel selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
       </div>
 
-      {/* Live telemetry — full width, dense */}
+      {/* Telemetry */}
       <SensorCards history={history} />
 
-      {/* Alert console + Command console — equal columns */}
+      {/* Alert console + Command console */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         <AlertPanel onViewAll={onNavigateAlerts} onSelectAlert={setSelectedAlert} />
         <CommandConsole onSelectAlert={setSelectedAlert} />

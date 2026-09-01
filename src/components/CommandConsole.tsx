@@ -12,21 +12,34 @@ interface CommandConsoleProps {
 
 function generateResponse(
   command: ParsedCommand,
-  sim: ReturnType<typeof useSimulation>
+  sim: ReturnType<typeof useSimulation>,
 ): { text: string; kind: ConsoleMessage['kind'] } {
   switch (command.action) {
     case 'check_room': {
       if (!command.room) return { text: 'Specify a room number.', kind: 'info' };
       const s = sim.getRoomSensors(command.room);
-      const ok = s.soundLevel === 'NORMAL' && s.temperature >= 18 && s.temperature <= 30 && s.humidity <= 75;
+      const ok =
+        s.soundLevel === 'NORMAL' &&
+        s.temperature >= 18 &&
+        s.temperature <= 30 &&
+        s.humidity <= 75;
       return ok
-        ? { text: `Room ${String(command.room).padStart(2,'0')}: ${s.temperature.toFixed(1)}°C, ${Math.round(s.humidity)}% humidity — all clear.`, kind: 'success' }
-        : { text: `Room ${String(command.room).padStart(2,'0')}: ${s.temperature.toFixed(1)}°C, ${Math.round(s.humidity)}% humidity, ${Math.round(s.sound)} dB — attention needed.`, kind: 'warning' };
+        ? {
+            text: `Room ${String(command.room).padStart(2, '0')}: ${s.temperature.toFixed(1)}°C, ${Math.round(s.humidity)}% humidity — all clear.`,
+            kind: 'success',
+          }
+        : {
+            text: `Room ${String(command.room).padStart(2, '0')}: ${s.temperature.toFixed(1)}°C, ${Math.round(s.humidity)}% humidity, ${Math.round(s.sound)} dB — attention needed.`,
+            kind: 'warning',
+          };
     }
     case 'go_to_room': {
       if (!command.room) return { text: 'Specify a room number.', kind: 'info' };
       deviceApi.sendCommand(command);
-      return { text: `Navigating to Room ${String(command.room).padStart(2,'0')}.`, kind: 'info' };
+      return {
+        text: `Navigating to Room ${String(command.room).padStart(2, '0')}.`,
+        kind: 'info',
+      };
     }
     case 'patrol': {
       deviceApi.sendCommand(command);
@@ -42,7 +55,7 @@ function generateResponse(
     case 'status': {
       const robot = sim.getRobot();
       return {
-        text: `${robot.state} at Room ${String(robot.currentRoom).padStart(2,'0')}. Battery ${Math.round(robot.battery)}%, signal ${Math.round(robot.connection)}%.`,
+        text: `${robot.state} at Room ${String(robot.currentRoom).padStart(2, '0')}. Battery ${Math.round(robot.battery)}%, signal ${Math.round(robot.connection)}%.`,
         kind: 'info',
       };
     }
@@ -51,26 +64,31 @@ function generateResponse(
       const issues = rooms.filter((r) => r.safety !== 'safe');
       if (!issues.length) return { text: 'All rooms clear. No active alerts.', kind: 'success' };
       return {
-        text: `${issues.length} room(s) need attention: ${issues.map((r) => `Room ${String(r.id).padStart(2,'0')} (${r.safety})`).join(', ')}.`,
+        text: `${issues.length} room(s) need attention: ${issues
+          .map((r) => `Room ${String(r.id).padStart(2, '0')} (${r.safety})`)
+          .join(', ')}.`,
         kind: 'warning',
       };
     }
     default:
-      return { text: 'Unknown command. Try: patrol, stop, status, report, check room 2, go to room 3.', kind: 'warning' };
+      return {
+        text: 'Unknown command. Try: patrol, stop, status, report, check room 2, go to room 3.',
+        kind: 'warning',
+      };
   }
 }
 
 const HINTS = ['patrol', 'stop', 'status', 'check room 2', 'go to room 3', 'report'];
 
 const MIC_COLORS: Record<MicState, string> = {
-  idle:        'text-ink-faint hover:text-ink-muted',
-  listening:   'text-green animate-pulse-green',
-  processing:  'text-amber',
-  error:       'text-red',
+  idle: 'text-ink-faint hover:text-ink-muted',
+  listening: 'text-green animate-pulse-green',
+  processing: 'text-amber',
+  error: 'text-red',
   unsupported: 'text-ink-faint opacity-40',
 };
 
-// Voice state waveform bars — shows listening activity
+// Voice waveform — shows listening activity
 function VoiceWaveform({ active }: { active: boolean }) {
   if (!active) return null;
   return (
@@ -89,24 +107,44 @@ function VoiceWaveform({ active }: { active: boolean }) {
 export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsoleProps) {
   const sim = useSimulation();
   const [messages, setMessages] = useState<ConsoleMessage[]>([
-    { id: 'sys-init', source: 'SYS', text: 'SAFEROOM command console ready.', timestamp: Date.now(), kind: 'info' },
+    {
+      id: 'sys-init',
+      source: 'SYS',
+      text: 'SAFEROOM command console ready.',
+      timestamp: Date.now(),
+      kind: 'info',
+    },
   ]);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef  = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { enabled: voiceEnabled, speak, toggle: toggleVoice } = useSpeechSynthesis();
 
-  const executeCommand = useCallback((raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) return;
+  const executeCommand = useCallback(
+    (raw: string) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return;
 
-    const userMsg: ConsoleMessage = { id: `you-${Date.now()}`, source: 'YOU', text: trimmed, timestamp: Date.now() };
-    const response = generateResponse(parseCommand(trimmed), sim);
-    const sysMsg: ConsoleMessage = { id: `sys-${Date.now()}`, source: 'SYS', text: response.text, timestamp: Date.now(), kind: response.kind };
+      const userMsg: ConsoleMessage = {
+        id: `you-${Date.now()}`,
+        source: 'YOU',
+        text: trimmed,
+        timestamp: Date.now(),
+      };
+      const response = generateResponse(parseCommand(trimmed), sim);
+      const sysMsg: ConsoleMessage = {
+        id: `sys-${Date.now()}`,
+        source: 'SYS',
+        text: response.text,
+        timestamp: Date.now(),
+        kind: response.kind,
+      };
 
-    setMessages((prev) => [...prev, userMsg, sysMsg]);
-    if (voiceEnabled) speak(response.text);
-  }, [sim, voiceEnabled, speak]);
+      setMessages((prev) => [...prev, userMsg, sysMsg]);
+      if (voiceEnabled) speak(response.text);
+    },
+    [sim, voiceEnabled, speak],
+  );
 
   const { micState, start, stop, isSupported } = useSpeechRecognition(executeCommand);
 
@@ -114,8 +152,15 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  const handleSubmit = () => { if (!input.trim()) return; executeCommand(input.trim()); setInput(''); };
-  const handleMicClick = () => { micState === 'listening' ? stop() : start(); };
+  const handleSubmit = () => {
+    if (!input.trim()) return;
+    executeCommand(input.trim());
+    setInput('');
+  };
+
+  const handleMicClick = () => {
+    micState === 'listening' ? stop() : start();
+  };
 
   return (
     <div className="panel flex flex-col" style={{ borderTop: '2px solid #263540' }}>
@@ -150,24 +195,44 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2 bg-base"
-        style={{ minHeight: 140, maxHeight: 220, fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem' }}
+        style={{
+          minHeight: 140,
+          maxHeight: 220,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '0.7rem',
+        }}
       >
         {messages.map((msg) => {
           const isUser = msg.source === 'YOU';
           return (
             <div key={msg.id} className="py-0.5 leading-relaxed">
               <span className="text-ink-faint mr-2 select-none">
-                {isUser ? '>' : msg.kind === 'success' ? '◆' : msg.kind === 'warning' ? '▲' : msg.kind === 'critical' ? '!' : '·'}
+                {isUser
+                  ? '>'
+                  : msg.kind === 'success'
+                  ? '◆'
+                  : msg.kind === 'warning'
+                  ? '▲'
+                  : msg.kind === 'critical'
+                  ? '!'
+                  : '·'}
               </span>
               <span className="text-ink-faint mr-1.5 select-none">
                 {isUser ? 'YOU' : 'SYS'}
               </span>
-              <span className={
-                isUser ? 'text-ink' :
-                msg.kind === 'success'  ? 'text-green' :
-                msg.kind === 'warning'  ? 'text-amber' :
-                msg.kind === 'critical' ? 'text-red'   : 'text-ink-muted'
-              }>
+              <span
+                className={
+                  isUser
+                    ? 'text-ink'
+                    : msg.kind === 'success'
+                    ? 'text-green'
+                    : msg.kind === 'warning'
+                    ? 'text-amber'
+                    : msg.kind === 'critical'
+                    ? 'text-red'
+                    : 'text-ink-muted'
+                }
+              >
                 {msg.text}
               </span>
             </div>
@@ -175,12 +240,15 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
         })}
       </div>
 
-      {/* Quick commands — operational vocabulary reference */}
+      {/* Quick commands */}
       <div className="px-3 py-1.5 border-t border-line-faint flex items-center gap-1.5 flex-wrap bg-base">
         {HINTS.map((hint) => (
           <button
             key={hint}
-            onClick={() => { executeCommand(hint); inputRef.current?.focus(); }}
+            onClick={() => {
+              executeCommand(hint);
+              inputRef.current?.focus();
+            }}
             className="px-1.5 py-0.5 text-3xs mono text-ink-faint border border-line hover:border-line-strong hover:text-ink-muted transition-colors tracking-wider"
           >
             {hint}
@@ -197,7 +265,7 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          placeholder="speak command..."
+          placeholder="enter command..."
           className="flex-1 bg-transparent text-xs mono text-ink placeholder:text-ink-faint focus:outline-none tracking-wide"
           aria-label="Enter command"
         />

@@ -43,7 +43,7 @@
     border-radius: 0;
   }
 
-  /* Panel with clipped corner — mission control aesthetic */
+  /* Panel with clipped corner — mission control accent */
   .panel-clipped {
     background-color: theme('colors.base.surface');
     border: 1px solid theme('colors.line.DEFAULT');
@@ -154,7 +154,7 @@
     background-color: rgba(255, 77, 77, 0.12);
   }
 
-  /* Technical progress bar — block segments like old hardware */
+  /* Technical progress bar — block segments */
   .progress-bar {
     height: 6px;
     background-color: theme('colors.base.elevated');
@@ -198,35 +198,9 @@
   .text-balance {
     text-wrap: balance;
   }
-
-  /* Corner bracket accent — top-left */
-  .corner-tl::before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: -1px;
-    width: 10px;
-    height: 10px;
-    border-top: 2px solid theme('colors.green.DEFAULT');
-    border-left: 2px solid theme('colors.green.DEFAULT');
-    pointer-events: none;
-  }
-
-  /* Corner bracket accent — bottom-right */
-  .corner-br::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 10px;
-    height: 10px;
-    border-bottom: 2px solid theme('colors.green.DEFAULT');
-    border-right: 2px solid theme('colors.green.DEFAULT');
-    pointer-events: none;
-  }
 }
 
-/* Telemetry stream animation on panel borders */
+/* Telemetry stream animation on borders — used sparingly */
 @keyframes borderDataScroll {
   0%   { transform: translateY(0); }
   100% { transform: translateY(-50%); }
@@ -240,7 +214,7 @@
   overflow: hidden;
   height: 100%;
   pointer-events: none;
-  opacity: 0.25;
+  opacity: 0.2;
 }
 
 .border-data-inner {
@@ -252,4 +226,34 @@
   color: #A8F04D;
   line-height: 1.4;
   white-space: nowrap;
+}
+
+/* Map interaction cursor */
+.facility-map {
+  cursor: grab;
+}
+.facility-map:active {
+  cursor: grabbing;
+}
+
+/* Smooth transitions for sensor values */
+.sensor-value {
+  transition: opacity 0.3s ease;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-green,
+  .animate-pulse-red,
+  .animate-pulse-amber,
+  .animate-heartbeat,
+  .animate-waveform,
+  .animate-telemetry-flow {
+    animation: none !important;
+  }
+
+  .facility-map svg line,
+  .facility-map svg ellipse {
+    animation: none !important;
+  }
 }

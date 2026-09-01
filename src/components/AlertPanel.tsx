@@ -14,7 +14,7 @@ export function AlertPanel({ onViewAll, onSelectAlert, maxItems = 5 }: AlertPane
 
   return (
     <div className="panel flex flex-col" style={{ borderTop: '2px solid #FF4D4D' }}>
-      {/* Header — log-style */}
+      {/* Header */}
       <div className="panel-header bg-base-elevated">
         <div className="flex items-center gap-3">
           <span className="section-title text-red">ALERT CONSOLE</span>

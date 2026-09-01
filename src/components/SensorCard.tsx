@@ -7,10 +7,18 @@ interface SensorCardProps {
   history: SensorHistoryPoint[];
 }
 
-// Sparkline trace — actual telemetry, not decoration
+// Sparkline trace — real telemetry visualization
 function Sparkline({
-  data, color, width = 72, height = 28,
-}: { data: number[]; color: string; width?: number; height?: number }) {
+  data,
+  color,
+  width = 72,
+  height = 28,
+}: {
+  data: number[];
+  color: string;
+  width?: number;
+  height?: number;
+}) {
   if (data.length < 2) return <svg width={width} height={height} />;
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -34,14 +42,13 @@ function Sparkline({
   );
 }
 
-// Sound waveform — communicates level through bar heights
+// Sound waveform bars — communicates level through bar heights
 function SoundWaveform({ value, max = 95 }: { value: number; max?: number }) {
   const ratio = Math.min(value / max, 1);
   const bars = 14;
   return (
     <div className="flex items-center gap-px h-7">
       {Array.from({ length: bars }).map((_, i) => {
-        // Envelope shape: center bars taller
         const env = 1 - Math.abs((i / (bars - 1)) - 0.5) * 1.2;
         const h = Math.max(2, Math.round(env * ratio * 28));
         const color = ratio > 0.85 ? '#FF4D4D' : ratio > 0.6 ? '#F2B84B' : '#A8F04D';
@@ -62,13 +69,15 @@ function SoundWaveform({ value, max = 95 }: { value: number; max?: number }) {
   );
 }
 
-// Delta indicator — up/down trend
+// Delta indicator — trend direction
 function Trend({ value, unit }: { value: number; unit: string }) {
-  if (Math.abs(value) < 0.05) return <span className="text-3xs mono text-ink-faint">—</span>;
+  if (Math.abs(value) < 0.05)
+    return <span className="text-3xs mono text-ink-faint">—</span>;
   const up = value > 0;
   return (
     <span className={`text-3xs mono ${up ? 'text-amber' : 'text-green'}`}>
-      {up ? '↑' : '↓'} {Math.abs(value).toFixed(1)}{unit}
+      {up ? '↑' : '↓'} {Math.abs(value).toFixed(1)}
+      {unit}
     </span>
   );
 }
@@ -78,16 +87,35 @@ export function SensorCards({ history }: SensorCardProps) {
   const robot = sim.getRobot();
   const sensors = sim.getCurrentRoomSensors();
 
-  const tempHistory = useMemo(() => history.slice(-24).map((h) => h.temperature), [history]);
-  const humHistory  = useMemo(() => history.slice(-24).map((h) => h.humidity),    [history]);
-  const sndHistory  = useMemo(() => history.slice(-24).map((h) => h.sound),       [history]);
+  const tempHistory = useMemo(
+    () => history.slice(-24).map((h) => h.temperature),
+    [history],
+  );
+  const humHistory = useMemo(
+    () => history.slice(-24).map((h) => h.humidity),
+    [history],
+  );
+  const sndHistory = useMemo(
+    () => history.slice(-24).map((h) => h.sound),
+    [history],
+  );
 
-  const tempDelta = history.length > 15 ? sensors.temperature - history[history.length - 15].temperature : 0;
-  const humDelta  = history.length > 15 ? sensors.humidity    - history[history.length - 15].humidity    : 0;
+  const tempDelta =
+    history.length > 15
+      ? sensors.temperature - history[history.length - 15].temperature
+      : 0;
+  const humDelta =
+    history.length > 15
+      ? sensors.humidity - history[history.length - 15].humidity
+      : 0;
 
   const prevTemp = usePreviousValue(sensors.temperature);
-  const soundColor = sensors.soundLevel === 'NORMAL' ? 'text-green' :
-                     sensors.soundLevel === 'LOUD'   ? 'text-amber' : 'text-red';
+  const soundColor =
+    sensors.soundLevel === 'NORMAL'
+      ? 'text-green'
+      : sensors.soundLevel === 'LOUD'
+      ? 'text-amber'
+      : 'text-red';
 
   return (
     <div className="panel" style={{ borderTop: '2px solid #263540' }}>
@@ -95,13 +123,12 @@ export function SensorCards({ history }: SensorCardProps) {
       <div className="panel-header bg-base-elevated">
         <span className="section-title">LIVE TELEMETRY</span>
         <span className="text-3xs mono text-ink-faint">
-          ROOM {String(robot.currentRoom).padStart(2,'0')} · SENSOR BUS
+          ROOM {String(robot.currentRoom).padStart(2, '0')} · SENSOR BUS
         </span>
       </div>
 
-      {/* Four metric blocks — side by side, no gap cards */}
+      {/* Four metrics side by side */}
       <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-line">
-
         {/* Temperature */}
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-1.5">
@@ -113,18 +140,19 @@ export function SensorCards({ history }: SensorCardProps) {
           <div className="flex items-end justify-between">
             <div>
               <span
-                className="text-3xl mono font-bold text-ink tabular-nums leading-none"
-                style={{ transition: 'opacity 0.3s', opacity: prevTemp !== sensors.temperature ? 0.75 : 1 }}
+                className="text-2xl mono font-bold text-ink tabular-nums leading-none"
+                style={{
+                  transition: 'opacity 0.3s',
+                  opacity: prevTemp !== sensors.temperature ? 0.75 : 1,
+                }}
               >
                 {sensors.temperature.toFixed(1)}
               </span>
-              <span className="text-sm mono text-ink-muted ml-0.5">°C</span>
+              <span className="text-xs mono text-ink-muted ml-0.5">°C</span>
             </div>
             <Sparkline data={tempHistory} color="#F2B84B" />
           </div>
-          <p className="text-3xs mono text-ink-faint mt-1">
-            LIMIT 18–30°C
-          </p>
+          <p className="text-3xs mono text-ink-faint mt-1">LIMIT 18–30°C</p>
         </div>
 
         {/* Humidity */}
@@ -137,16 +165,14 @@ export function SensorCards({ history }: SensorCardProps) {
           </div>
           <div className="flex items-end justify-between">
             <div>
-              <span className="text-3xl mono font-bold text-ink tabular-nums leading-none">
+              <span className="text-2xl mono font-bold text-ink tabular-nums leading-none">
                 {Math.round(sensors.humidity)}
               </span>
-              <span className="text-sm mono text-ink-muted ml-0.5">%</span>
+              <span className="text-xs mono text-ink-muted ml-0.5">%</span>
             </div>
             <Sparkline data={humHistory} color="#55D6E8" />
           </div>
-          <p className="text-3xs mono text-ink-faint mt-1">
-            LIMIT &lt;75%
-          </p>
+          <p className="text-3xs mono text-ink-faint mt-1">LIMIT &lt;75%</p>
         </div>
 
         {/* Sound */}
@@ -161,16 +187,14 @@ export function SensorCards({ history }: SensorCardProps) {
           </div>
           <div className="flex items-end justify-between">
             <div>
-              <span className={`text-3xl mono font-bold tabular-nums leading-none ${soundColor}`}>
+              <span className={`text-2xl mono font-bold tabular-nums leading-none ${soundColor}`}>
                 {Math.round(sensors.sound)}
               </span>
-              <span className="text-sm mono text-ink-muted ml-0.5">dB</span>
+              <span className="text-xs mono text-ink-muted ml-0.5">dB</span>
             </div>
             <SoundWaveform value={sensors.sound} />
           </div>
-          <p className="text-3xs mono text-ink-faint mt-1">
-            LIMIT &lt;70 dB
-          </p>
+          <p className="text-3xs mono text-ink-faint mt-1">LIMIT &lt;70 dB</p>
         </div>
 
         {/* Robot state */}
@@ -182,27 +206,32 @@ export function SensorCards({ history }: SensorCardProps) {
             <span className="status-dot bg-green animate-pulse-green" />
           </div>
           <div>
-            <span className={`text-xl mono font-bold leading-none ${
-              robot.state === 'PATROLLING' || robot.state === 'MOVING' ? 'text-green' :
-              robot.state === 'IDLE' ? 'text-amber' : 'text-ink-faint'
-            }`}>
+            <span
+              className={`text-lg mono font-bold leading-none ${
+                robot.state === 'PATROLLING' || robot.state === 'MOVING'
+                  ? 'text-green'
+                  : robot.state === 'IDLE'
+                  ? 'text-amber'
+                  : 'text-ink-faint'
+              }`}
+            >
               {robot.state}
             </span>
           </div>
           {robot.targetRoom !== null ? (
             <p className="text-2xs mono text-ink-muted mt-1.5">
-              ROOM {String(robot.currentRoom).padStart(2,'0')} → ROOM {String(robot.targetRoom).padStart(2,'0')}
+              ROOM {String(robot.currentRoom).padStart(2, '0')} → ROOM{' '}
+              {String(robot.targetRoom).padStart(2, '0')}
             </p>
           ) : (
             <p className="text-2xs mono text-ink-faint mt-1.5">
-              AT ROOM {String(robot.currentRoom).padStart(2,'0')}
+              AT ROOM {String(robot.currentRoom).padStart(2, '0')}
             </p>
           )}
           {robot.etaSeconds > 0 && (
             <p className="text-3xs mono text-cyan mt-0.5">ETA {robot.etaSeconds}s</p>
           )}
         </div>
-
       </div>
     </div>
   );

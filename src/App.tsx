@@ -42,8 +42,9 @@ function App() {
           <Menu className="w-4 h-4" />
           MENU
         </button>
-        {/* Current page on mobile */}
-        <span className="text-2xs mono text-ink-faint tracking-widest uppercase">{currentPage}</span>
+        <span className="text-2xs mono text-ink-faint tracking-widest uppercase">
+          {currentPage}
+        </span>
       </div>
 
       {/* Main layout */}
@@ -55,17 +56,21 @@ function App() {
           onClose={() => setSidebarOpen(false)}
         />
 
-        {/* Main content area */}
+        {/* Main content */}
         <main className="flex-1 overflow-y-auto scrollbar-thin p-3 lg:p-4">
-          {currentPage === 'overview' && <OverviewPage onNavigateAlerts={() => setCurrentPage('alerts')} />}
-          {currentPage === 'patrol'   && <PatrolPage />}
-          {currentPage === 'alerts'   && <AlertsPage />}
-          {currentPage === 'history'  && <HistoryPage />}
+          {currentPage === 'overview' && (
+            <OverviewPage onNavigateAlerts={() => setCurrentPage('alerts')} />
+          )}
+          {currentPage === 'patrol' && <PatrolPage />}
+          {currentPage === 'alerts' && <AlertsPage />}
+          {currentPage === 'history' && <HistoryPage />}
 
-          {/* Footer identifier — mission control aesthetic */}
+          {/* Footer */}
           <div className="flex items-center justify-between mt-6 pt-3 border-t border-line-faint">
             <span className="text-3xs mono text-ink-faint tracking-widest">SAFEROOM OS v2.5.0</span>
-            <span className="text-3xs mono text-ink-faint tracking-widest">NODE 04 · SENSOR BUS NORMAL</span>
+            <span className="text-3xs mono text-ink-faint tracking-widest">
+              NODE 04 · SENSOR BUS NORMAL
+            </span>
           </div>
         </main>
       </div>
