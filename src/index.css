@@ -5,6 +5,7 @@
 @layer base {
   * {
     border-color: theme('colors.line.DEFAULT');
+    box-sizing: border-box;
   }
 
   html {
@@ -22,29 +23,58 @@
   }
 
   ::selection {
-    background-color: rgba(184, 243, 74, 0.2);
+    background-color: rgba(168, 240, 77, 0.18);
     color: #fff;
   }
 }
 
 @layer components {
+  /* Technical panel — sharp corners, engineered feel */
   .panel {
     background-color: theme('colors.base.surface');
     border: 1px solid theme('colors.line.DEFAULT');
-    border-radius: 4px;
+    border-radius: 0;
   }
 
+  /* Slightly elevated surface */
   .panel-elevated {
     background-color: theme('colors.base.elevated');
     border: 1px solid theme('colors.line.DEFAULT');
-    border-radius: 4px;
+    border-radius: 0;
   }
 
+  /* Panel with clipped corner — mission control aesthetic */
+  .panel-clipped {
+    background-color: theme('colors.base.surface');
+    border: 1px solid theme('colors.line.DEFAULT');
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  /* Panel header bar */
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.875rem;
+    border-bottom: 1px solid theme('colors.line.DEFAULT');
+  }
+
+  /* Section label — monospaced, upper, muted */
   .label-text {
     font-family: theme('fontFamily.mono');
-    font-size: 0.625rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: theme('colors.ink.faint');
+  }
+
+  /* Section title — slightly larger label */
+  .section-title {
+    font-family: theme('fontFamily.mono');
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: theme('colors.ink.muted');
   }
@@ -53,39 +83,96 @@
     font-family: theme('fontFamily.mono');
   }
 
+  /* Navigation item */
   .nav-item {
     display: flex;
     align-items: center;
     gap: 0.625rem;
     padding: 0.5rem 0.75rem;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: theme('colors.ink.muted');
-    border-radius: 3px;
-    transition: all 0.15s ease;
-    position: relative;
+    border-left: 2px solid transparent;
+    transition: all 0.12s ease;
     cursor: pointer;
+    letter-spacing: 0.04em;
   }
 
   .nav-item:hover {
     color: theme('colors.ink.DEFAULT');
     background-color: theme('colors.base.hover');
+    border-left-color: theme('colors.line.strong');
   }
 
   .nav-item.active {
     color: theme('colors.green.DEFAULT');
     background-color: theme('colors.green.tint');
+    border-left-color: theme('colors.green.DEFAULT');
   }
 
-  .nav-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: theme('colors.green.DEFAULT');
-    border-radius: 1px;
+  /* Technical button — square, not pill */
+  .btn-tech {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.875rem;
+    font-family: theme('fontFamily.mono');
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid;
+    transition: all 0.12s ease;
+    cursor: pointer;
+  }
+
+  .btn-green {
+    color: theme('colors.green.DEFAULT');
+    border-color: rgba(168, 240, 77, 0.3);
+    background-color: theme('colors.green.tint');
+  }
+  .btn-green:hover {
+    background-color: rgba(168, 240, 77, 0.12);
+    border-color: rgba(168, 240, 77, 0.5);
+  }
+
+  .btn-amber {
+    color: theme('colors.amber.DEFAULT');
+    border-color: rgba(242, 184, 75, 0.3);
+    background-color: theme('colors.amber.tint');
+  }
+  .btn-amber:hover {
+    background-color: rgba(242, 184, 75, 0.12);
+  }
+
+  .btn-red {
+    color: theme('colors.red.DEFAULT');
+    border-color: rgba(255, 77, 77, 0.3);
+    background-color: theme('colors.red.tint');
+  }
+  .btn-red:hover {
+    background-color: rgba(255, 77, 77, 0.12);
+  }
+
+  /* Technical progress bar — block segments like old hardware */
+  .progress-bar {
+    height: 6px;
+    background-color: theme('colors.base.elevated');
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+  }
+
+  /* Status dot indicator */
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
   }
 }
 
@@ -96,8 +183,8 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -106,14 +193,63 @@
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: theme('colors.line.strong');
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: theme('colors.ink.faint');
   }
 
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Corner bracket accent — top-left */
+  .corner-tl::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid theme('colors.green.DEFAULT');
+    border-left: 2px solid theme('colors.green.DEFAULT');
+    pointer-events: none;
+  }
+
+  /* Corner bracket accent — bottom-right */
+  .corner-br::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-bottom: 2px solid theme('colors.green.DEFAULT');
+    border-right: 2px solid theme('colors.green.DEFAULT');
+    pointer-events: none;
+  }
+}
+
+/* Telemetry stream animation on panel borders */
+@keyframes borderDataScroll {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.border-data-stream {
+  position: absolute;
+  top: 0;
+  right: -20px;
+  width: 16px;
+  overflow: hidden;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+.border-data-inner {
+  display: flex;
+  flex-direction: column;
+  animation: borderDataScroll 10s linear infinite;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: #A8F04D;
+  line-height: 1.4;
+  white-space: nowrap;
 }

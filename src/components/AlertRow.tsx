@@ -7,59 +7,68 @@ interface AlertRowProps {
   compact?: boolean;
 }
 
-// Severity indicator: a left-border accent, no dot/badge overload
-const SEVERITY_BORDER: Record<string, string> = {
-  critical: 'border-l-red',
-  warning: 'border-l-amber',
-  info: 'border-l-line',
-};
-
-const SEVERITY_TEXT: Record<string, string> = {
-  critical: 'text-red',
-  warning: 'text-amber',
-  info: 'text-ink-muted',
+const SEVERITY_LEFT: Record<string, string> = {
+  critical: '#FF4D4D',
+  warning:  '#F2B84B',
+  info:     '#263540',
 };
 
 export function AlertRow({ alert, onClick, compact }: AlertRowProps) {
   const isActive = alert.state === 'ACTIVE';
+  const isResolved = alert.state === 'RESOLVED';
 
   return (
     <div
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className={`
-        flex items-start gap-3 px-3 py-2.5 border-b border-line-faint border-l-2
-        ${SEVERITY_BORDER[alert.severity]}
+        flex items-center gap-0 border-b border-line-faint
         ${isActive ? 'bg-base-elevated' : ''}
-        ${onClick ? 'cursor-pointer hover:bg-base-hover' : 'cursor-default'}
-        transition-colors
+        ${onClick ? 'cursor-pointer hover:bg-base-hover' : ''}
+        transition-colors animate-slide-in
       `}
+      style={{ borderLeft: `2px solid ${SEVERITY_LEFT[alert.severity]}` }}
     >
       {/* Time */}
-      <span className="text-2xs mono text-ink-faint tabular-nums shrink-0 pt-0.5 w-[52px]">
+      <span className="text-3xs mono text-ink-faint tabular-nums px-3 py-2.5 shrink-0 w-[62px]">
         {formatTimeSec(alert.timestamp)}
       </span>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 mb-0.5">
-          <span className="text-2xs mono text-ink-muted shrink-0">{formatRoom(alert.room)}</span>
-          {!compact && (
-            <span className={`text-2xs mono font-semibold ${alertStateColor(alert.state)}`}>
-              {alert.state}
-            </span>
-          )}
-        </div>
-        <p className={`text-xs leading-snug ${isActive ? SEVERITY_TEXT[alert.severity] : 'text-ink-muted'}`}>
-          {alert.description}
-        </p>
-        {alert.value !== undefined && (
-          <p className="text-2xs mono text-ink-faint mt-0.5">
-            {alert.value.toFixed(1)}
-            {alert.metric === 'temperature' ? '°C' : alert.metric === 'humidity' ? '%' : ' dB'}
-            {alert.threshold !== undefined ? ` — limit ${alert.threshold}` : ''}
-          </p>
-        )}
-      </div>
+      {/* Room */}
+      <span className="text-2xs mono text-cyan tabular-nums px-2 py-2.5 shrink-0 w-[64px]">
+        {formatRoom(alert.room)}
+      </span>
+
+      {/* Description */}
+      <span className={`
+        flex-1 text-xs py-2.5 px-2 truncate
+        ${isActive
+          ? alert.severity === 'critical' ? 'text-red' : 'text-amber'
+          : isResolved ? 'text-ink-faint' : 'text-ink-muted'
+        }
+      `}>
+        {alert.description.toUpperCase()}
+      </span>
+
+      {/* State */}
+      {!compact && (
+        <span className={`
+          text-2xs mono font-semibold tracking-widest px-3 py-2.5 shrink-0
+          ${alertStateColor(alert.state)}
+        `}>
+          {alert.state}
+        </span>
+      )}
+
+      {compact && (
+        <span className={`
+          text-3xs mono px-3 py-2.5 shrink-0
+          ${isActive ? 'text-red' : 'text-ink-faint'}
+        `}>
+          {isActive ? 'ACTIVE' : 'RESOLVED'}
+        </span>
+      )}
     </div>
   );
 }

@@ -1,20 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Inbox } from 'lucide-react';
 import { useSimulation } from '@/hooks/useSimulation';
 import { AlertRow } from '@/components/AlertRow';
 import { AlertDetail } from '@/components/AlertDetail';
 import { alertApi } from '@/api';
-import type { AlertState, Severity } from '@/types';
-import { formatTimeSec, formatRoom } from '@/utils/style';
 
 type FilterType = 'ALL' | 'ACTIVE' | 'RESOLVED' | 'CRITICAL' | 'WARNING';
 
 const FILTERS: { id: FilterType; label: string }[] = [
-  { id: 'ALL', label: 'ALL' },
-  { id: 'ACTIVE', label: 'ACTIVE' },
+  { id: 'ALL',      label: 'ALL' },
+  { id: 'ACTIVE',   label: 'ACTIVE' },
   { id: 'RESOLVED', label: 'RESOLVED' },
   { id: 'CRITICAL', label: 'CRITICAL' },
-  { id: 'WARNING', label: 'WARNING' },
+  { id: 'WARNING',  label: 'WARNING' },
 ];
 
 export function AlertsPage() {
@@ -25,54 +22,49 @@ export function AlertsPage() {
 
   const filtered = useMemo(() => {
     switch (filter) {
-      case 'ACTIVE':
-        return alerts.filter((a) => a.state === 'ACTIVE');
-      case 'RESOLVED':
-        return alerts.filter((a) => a.state === 'RESOLVED');
-      case 'CRITICAL':
-        return alerts.filter((a) => a.severity === 'critical');
-      case 'WARNING':
-        return alerts.filter((a) => a.severity === 'warning');
-      default:
-        return alerts;
+      case 'ACTIVE':   return alerts.filter((a) => a.state === 'ACTIVE');
+      case 'RESOLVED': return alerts.filter((a) => a.state === 'RESOLVED');
+      case 'CRITICAL': return alerts.filter((a) => a.severity === 'critical');
+      case 'WARNING':  return alerts.filter((a) => a.severity === 'warning');
+      default:         return alerts;
     }
   }, [alerts, filter]);
 
-  const counts = useMemo(() => {
-    return {
-      all: alerts.length,
-      active: alerts.filter((a) => a.state === 'ACTIVE').length,
-      resolved: alerts.filter((a) => a.state === 'RESOLVED').length,
-      critical: alerts.filter((a) => a.severity === 'critical').length,
-      warning: alerts.filter((a) => a.severity === 'warning').length,
-    };
-  }, [alerts]);
+  const counts = useMemo(() => ({
+    all:      alerts.length,
+    active:   alerts.filter((a) => a.state === 'ACTIVE').length,
+    resolved: alerts.filter((a) => a.state === 'RESOLVED').length,
+    critical: alerts.filter((a) => a.severity === 'critical').length,
+    warning:  alerts.filter((a) => a.severity === 'warning').length,
+  }), [alerts]);
 
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div>
-        <h2 className="text-sm font-semibold text-ink tracking-wide">ALERT CENTER</h2>
-        <p className="text-2xs mono text-ink-faint">Safety violations · Environmental thresholds · System events</p>
+      <div className="flex items-center gap-3">
+        <span className="section-title text-ink">ALERT CENTER</span>
+        <span className="text-3xs mono text-ink-faint">SAFETY VIOLATIONS · THRESHOLDS · SYSTEM EVENTS</span>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="panel p-3">
-          <span className="label-text">TOTAL</span>
-          <p className="text-2xl mono font-semibold text-ink mt-1">{counts.all}</p>
-        </div>
-        <div className="panel p-3 border-l-2 border-l-red">
-          <span className="label-text">ACTIVE</span>
-          <p className="text-2xl mono font-semibold text-red mt-1">{counts.active}</p>
-        </div>
-        <div className="panel p-3 border-l-2 border-l-amber">
-          <span className="label-text">WARNINGS</span>
-          <p className="text-2xl mono font-semibold text-amber mt-1">{counts.warning}</p>
-        </div>
-        <div className="panel p-3 border-l-2 border-l-green">
-          <span className="label-text">RESOLVED</span>
-          <p className="text-2xl mono font-semibold text-green mt-1">{counts.resolved}</p>
+      {/* Stats — compact metric row, not cards */}
+      <div className="panel" style={{ borderTop: '2px solid #263540' }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-line">
+          <div className="px-4 py-3">
+            <span className="label-text">TOTAL</span>
+            <p className="text-3xl mono font-bold text-ink mt-0.5 tabular-nums">{counts.all}</p>
+          </div>
+          <div className="px-4 py-3">
+            <span className="label-text text-red">ACTIVE</span>
+            <p className="text-3xl mono font-bold text-red mt-0.5 tabular-nums">{counts.active}</p>
+          </div>
+          <div className="px-4 py-3">
+            <span className="label-text text-amber">WARNINGS</span>
+            <p className="text-3xl mono font-bold text-amber mt-0.5 tabular-nums">{counts.warning}</p>
+          </div>
+          <div className="px-4 py-3">
+            <span className="label-text text-green">RESOLVED</span>
+            <p className="text-3xl mono font-bold text-green mt-0.5 tabular-nums">{counts.resolved}</p>
+          </div>
         </div>
       </div>
 
@@ -82,10 +74,10 @@ export function AlertsPage() {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-3 py-1.5 rounded text-2xs mono tracking-wider transition-colors ${
+            className={`px-3 py-1.5 text-2xs mono tracking-widest transition-colors border ${
               filter === f.id
-                ? 'bg-green-tint text-green border border-green/30'
-                : 'bg-base-surface text-ink-muted border border-line hover:text-ink hover:border-line-strong'
+                ? 'border-green text-green bg-green-tint'
+                : 'border-line text-ink-muted hover:text-ink hover:border-line-strong bg-base-surface'
             }`}
           >
             {f.label}
@@ -93,29 +85,39 @@ export function AlertsPage() {
         ))}
       </div>
 
-      {/* Alert list */}
-      <div className="panel">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-line">
-          <span className="label-text">ALERT LOG</span>
-          <span className="text-2xs mono text-ink-muted">{filtered.length} ITEMS</span>
+      {/* Alert log */}
+      <div className="panel" style={{ borderTop: '2px solid #FF4D4D' }}>
+        <div className="panel-header bg-base-elevated">
+          <span className="section-title text-red">ALERT LOG</span>
+          <span className="text-3xs mono text-ink-faint">{filtered.length} ENTRIES</span>
+        </div>
+
+        {/* Column headers */}
+        <div className="flex items-center border-b border-line px-0 py-1 bg-base">
+          <span className="text-3xs mono text-ink-faint w-[62px] px-3">TIME</span>
+          <span className="text-3xs mono text-ink-faint w-[64px] px-2">LOCATION</span>
+          <span className="text-3xs mono text-ink-faint flex-1 px-2">EVENT</span>
+          <span className="text-3xs mono text-ink-faint px-3">STATE</span>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-2">
-            <Inbox className="w-10 h-10 text-ink-faint" />
-            <span className="text-sm text-ink-muted">No alerts in this category</span>
-            <span className="text-2xs mono text-ink-faint">All clear</span>
+          <div className="px-4 py-12 text-center">
+            <p className="text-xs mono text-green">ALL CLEAR</p>
+            <p className="text-3xs mono text-ink-faint mt-1">No alerts in this category.</p>
           </div>
         ) : (
-          <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: 600 }}>
+          <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: 560 }}>
             {filtered.map((alert) => (
-              <AlertRow key={alert.id} alert={alert} onClick={() => setSelectedAlert(alert.id)} />
+              <AlertRow
+                key={alert.id}
+                alert={alert}
+                onClick={() => setSelectedAlert(alert.id)}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* Alert detail modal */}
       {selectedAlert && (
         <AlertDetail
           alertId={selectedAlert}

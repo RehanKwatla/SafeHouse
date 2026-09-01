@@ -1,5 +1,5 @@
 import type { Room } from '@/types';
-import { safetyColor, safetyBorder, formatRoom } from '@/utils/style';
+import { safetyColor, safetyBorder } from '@/utils/style';
 
 interface RoomCardProps {
   room: Room;
@@ -7,79 +7,65 @@ interface RoomCardProps {
   onClick: () => void;
 }
 
-// Human-readable event descriptions instead of raw sensor dumps
-function describeSafetyEvent(room: Room): string | null {
+function describePrimaryIssue(room: Room): string | null {
   const { sensors, safety } = room;
   if (safety === 'safe') return null;
-
-  const issues: string[] = [];
-
-  if (sensors.temperature < 18) {
-    issues.push(`Too cold — ${sensors.temperature.toFixed(1)}°C`);
-  } else if (sensors.temperature > 30) {
-    issues.push(`Too hot — ${sensors.temperature.toFixed(1)}°C`);
-  }
-
-  if (sensors.humidity > 75) {
-    issues.push(`Humidity high — ${Math.round(sensors.humidity)}%`);
-  }
-
-  if (sensors.soundLevel === 'HIGH') {
-    issues.push(`Loud sound — ${Math.round(sensors.sound)} dB`);
-  } else if (sensors.soundLevel === 'LOUD') {
-    issues.push(`Elevated sound — ${Math.round(sensors.sound)} dB`);
-  }
-
-  return issues[0] ?? null;
+  if (sensors.temperature < 18) return `Too cold — ${sensors.temperature.toFixed(1)}°C`;
+  if (sensors.temperature > 30) return `Too hot — ${sensors.temperature.toFixed(1)}°C`;
+  if (sensors.humidity > 75) return `Humidity high — ${Math.round(sensors.humidity)}%`;
+  if (sensors.soundLevel === 'HIGH') return `High sound — ${Math.round(sensors.sound)} dB`;
+  if (sensors.soundLevel === 'LOUD') return `Elevated sound — ${Math.round(sensors.sound)} dB`;
+  return null;
 }
+
+const SAFETY_SYMBOL = {
+  safe: '◆',
+  warning: '▲',
+  critical: '▲',
+} as const;
 
 export function RoomCard({ room, isSelected, onClick }: RoomCardProps) {
   const color = safetyColor(room.safety);
-  const event = describeSafetyEvent(room);
+  const issue = describePrimaryIssue(room);
   const hasProblem = room.safety !== 'safe';
 
   return (
     <div
       onClick={onClick}
       className={`
-        relative border-l-2 ${safetyBorder(room.safety)}
-        px-3 py-2.5 cursor-pointer transition-colors duration-100
-        ${isSelected
-          ? 'bg-base-hover'
-          : hasProblem
-          ? 'bg-base-elevated hover:bg-base-hover'
-          : 'bg-base-elevated hover:bg-base-hover'
-        }
+        border-l-2 ${safetyBorder(room.safety)} px-3 py-2.5
+        cursor-pointer transition-colors duration-100
+        ${isSelected ? 'bg-base-hover' : 'bg-base-elevated hover:bg-base-hover'}
       `}
     >
-      {/* Room ID + safety state on one line */}
+      {/* Row 1: room ID + state */}
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs mono font-semibold text-ink tracking-wider">
-          {formatRoom(room.id)}
+        <span className="text-xs mono font-bold text-ink tracking-widest">
+          ROOM {String(room.id).padStart(2,'0')}
         </span>
-        <span className={`text-2xs mono font-semibold tracking-wider ${color}`}>
-          {room.safety === 'safe' ? 'SAFE' : room.safety === 'warning' ? 'WARNING' : 'CRITICAL'}
-        </span>
+        <div className={`flex items-center gap-1 ${color}`}>
+          <span className="text-3xs">{SAFETY_SYMBOL[room.safety]}</span>
+          <span className="text-2xs mono font-bold tracking-widest">
+            {room.safety === 'safe' ? 'SAFE' : room.safety === 'warning' ? 'ATTENTION' : 'ALERT'}
+          </span>
+        </div>
       </div>
 
-      {/* Room name */}
-      <p className="text-2xs text-ink-faint mb-1.5">{room.name}</p>
+      {/* Row 2: room name */}
+      <p className="text-2xs text-ink-faint mb-1.5 tracking-wide">{room.name}</p>
 
-      {/* Show event description OR compact sensor row depending on state */}
-      {hasProblem && event ? (
-        <p className={`text-xs font-medium ${color}`}>{event}</p>
+      {/* Row 3: issue OR sensor strip */}
+      {hasProblem && issue ? (
+        <p className={`text-xs font-medium ${color}`}>{issue}</p>
       ) : (
-        <div className="flex items-center gap-3 text-2xs mono text-ink-faint">
+        <div className="flex items-center gap-3 text-2xs mono">
           <span className="text-ink-muted tabular-nums">{room.sensors.temperature.toFixed(1)}°C</span>
-          <span className="tabular-nums">{Math.round(room.sensors.humidity)}%</span>
+          <span className="text-ink-faint tabular-nums">{Math.round(room.sensors.humidity)}%</span>
           <span className={
-            room.sensors.soundLevel === 'NORMAL'
-              ? ''
-              : room.sensors.soundLevel === 'LOUD'
-              ? 'text-amber'
-              : 'text-red'
+            room.sensors.soundLevel === 'NORMAL' ? 'text-ink-faint' :
+            room.sensors.soundLevel === 'LOUD'   ? 'text-amber' : 'text-red'
           }>
-            {room.sensors.soundLevel === 'NORMAL' ? 'quiet' : room.sensors.soundLevel === 'LOUD' ? 'loud' : 'high sound'}
+            {room.sensors.soundLevel}
           </span>
         </div>
       )}

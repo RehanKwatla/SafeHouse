@@ -14,13 +14,13 @@ export function SimulationToggle() {
   return (
     <div className="flex items-center gap-2">
       <span className="label-text hidden sm:inline">DATA SOURCE</span>
-      <div className="flex items-center bg-base border border-line rounded p-0.5">
+      <div className="flex items-center border border-line bg-base">
         <button
           onClick={() => setSource('SIMULATION')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-2xs mono tracking-wider transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-2xs mono tracking-widest transition-colors border-r border-line ${
             current === 'SIMULATION'
-              ? 'bg-amber-tint text-amber border border-amber/30'
-              : 'text-ink-muted hover:text-ink'
+              ? 'bg-amber-tint text-amber'
+              : 'text-ink-muted hover:text-ink hover:bg-base-hover'
           }`}
         >
           <Cpu className="w-3 h-3" />
@@ -28,10 +28,10 @@ export function SimulationToggle() {
         </button>
         <button
           onClick={() => setSource('LIVE')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-2xs mono tracking-wider transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-2xs mono tracking-widest transition-colors ${
             current === 'LIVE'
-              ? 'bg-green-tint text-green border border-green/30'
-              : 'text-ink-muted hover:text-ink'
+              ? 'bg-green-tint text-green'
+              : 'text-ink-muted hover:text-ink hover:bg-base-hover'
           }`}
         >
           <Radio className="w-3 h-3" />

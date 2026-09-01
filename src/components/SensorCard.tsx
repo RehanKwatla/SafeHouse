@@ -1,4 +1,4 @@
-import { Thermometer, Droplets, AudioLines, Bot, TrendingUp, TrendingDown } from 'lucide-react';
+import { Thermometer, Droplets, AudioLines, Bot } from 'lucide-react';
 import { useSimulation, usePreviousValue } from '@/hooks/useSimulation';
 import type { SensorHistoryPoint } from '@/types';
 import { useMemo } from 'react';
@@ -7,20 +7,23 @@ interface SensorCardProps {
   history: SensorHistoryPoint[];
 }
 
-function Sparkline({ data, color, width = 80, height = 24 }: { data: number[]; color: string; width?: number; height?: number }) {
+// Sparkline trace — actual telemetry, not decoration
+function Sparkline({
+  data, color, width = 72, height = 28,
+}: { data: number[]; color: string; width?: number; height?: number }) {
   if (data.length < 2) return <svg width={width} height={height} />;
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
-  const points = data.map((v, i) => {
+  const pts = data.map((v, i) => {
     const x = (i / (data.length - 1)) * width;
-    const y = height - ((v - min) / range) * height;
-    return `${x},${y}`;
+    const y = height - ((v - min) / range) * (height - 2) - 1;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg width={width} height={height} className="overflow-visible opacity-70">
       <polyline
-        points={points.join(' ')}
+        points={pts.join(' ')}
         fill="none"
         stroke={color}
         strokeWidth="1.5"
@@ -31,13 +34,41 @@ function Sparkline({ data, color, width = 80, height = 24 }: { data: number[]; c
   );
 }
 
-function Delta({ value, unit }: { value: number; unit: string }) {
-  if (Math.abs(value) < 0.05) return <span className="text-2xs mono text-ink-faint">— {unit}</span>;
-  const positive = value > 0;
+// Sound waveform — communicates level through bar heights
+function SoundWaveform({ value, max = 95 }: { value: number; max?: number }) {
+  const ratio = Math.min(value / max, 1);
+  const bars = 14;
   return (
-    <span className={`text-2xs mono flex items-center gap-0.5 ${positive ? 'text-amber' : 'text-green'}`}>
-      {positive ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-      {positive ? '+' : ''}{value.toFixed(1)}{unit}
+    <div className="flex items-center gap-px h-7">
+      {Array.from({ length: bars }).map((_, i) => {
+        // Envelope shape: center bars taller
+        const env = 1 - Math.abs((i / (bars - 1)) - 0.5) * 1.2;
+        const h = Math.max(2, Math.round(env * ratio * 28));
+        const color = ratio > 0.85 ? '#FF4D4D' : ratio > 0.6 ? '#F2B84B' : '#A8F04D';
+        return (
+          <div
+            key={i}
+            className="w-1 animate-waveform"
+            style={{
+              height: `${h}px`,
+              backgroundColor: color,
+              opacity: 0.8,
+              animationDelay: `${i * 0.06}s`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// Delta indicator — up/down trend
+function Trend({ value, unit }: { value: number; unit: string }) {
+  if (Math.abs(value) < 0.05) return <span className="text-3xs mono text-ink-faint">—</span>;
+  const up = value > 0;
+  return (
+    <span className={`text-3xs mono ${up ? 'text-amber' : 'text-green'}`}>
+      {up ? '↑' : '↓'} {Math.abs(value).toFixed(1)}{unit}
     </span>
   );
 }
@@ -45,104 +76,133 @@ function Delta({ value, unit }: { value: number; unit: string }) {
 export function SensorCards({ history }: SensorCardProps) {
   const sim = useSimulation();
   const robot = sim.getRobot();
-  const currentSensors = sim.getCurrentRoomSensors();
+  const sensors = sim.getCurrentRoomSensors();
 
-  const tempHistory = useMemo(() => history.slice(-20).map((h) => h.temperature), [history]);
-  const humidityHistory = useMemo(() => history.slice(-20).map((h) => h.humidity), [history]);
-  const soundHistory = useMemo(() => history.slice(-20).map((h) => h.sound), [history]);
+  const tempHistory = useMemo(() => history.slice(-24).map((h) => h.temperature), [history]);
+  const humHistory  = useMemo(() => history.slice(-24).map((h) => h.humidity),    [history]);
+  const sndHistory  = useMemo(() => history.slice(-24).map((h) => h.sound),       [history]);
 
-  // Calculate deltas from ~1 hour ago (60 points at 1 min intervals — but our history is 2s intervals, so ~30 points for 1 min)
-  const tempDelta = history.length > 30 ? currentSensors.temperature - history[history.length - 30].temperature : 0;
-  const humidityDelta = history.length > 30 ? currentSensors.humidity - history[history.length - 30].humidity : 0;
-  const soundDelta = history.length > 30 ? currentSensors.sound - history[history.length - 30].sound : 0;
+  const tempDelta = history.length > 15 ? sensors.temperature - history[history.length - 15].temperature : 0;
+  const humDelta  = history.length > 15 ? sensors.humidity    - history[history.length - 15].humidity    : 0;
 
-  const prevTemp = usePreviousValue(currentSensors.temperature);
-
-  const soundStatus = currentSensors.soundLevel;
-  const soundColor = soundStatus === 'NORMAL' ? 'text-green' : soundStatus === 'LOUD' ? 'text-amber' : 'text-red';
+  const prevTemp = usePreviousValue(sensors.temperature);
+  const soundColor = sensors.soundLevel === 'NORMAL' ? 'text-green' :
+                     sensors.soundLevel === 'LOUD'   ? 'text-amber' : 'text-red';
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {/* Temperature */}
-      <div className="panel p-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="label-text flex items-center gap-1.5">
-            <Thermometer className="w-3 h-3 text-amber" /> TEMPERATURE
-          </span>
-          <Delta value={tempDelta} unit="°C" />
-        </div>
-        <div className="flex items-end justify-between">
-          <div>
-            <span
-              className="text-2xl font-semibold mono text-ink tabular-nums transition-all duration-300"
-              key={currentSensors.temperature}
-              style={{ opacity: prevTemp !== currentSensors.temperature ? 0.8 : 1 }}
-            >
-              {currentSensors.temperature.toFixed(1)}
+    <div className="panel" style={{ borderTop: '2px solid #263540' }}>
+      {/* Header */}
+      <div className="panel-header bg-base-elevated">
+        <span className="section-title">LIVE TELEMETRY</span>
+        <span className="text-3xs mono text-ink-faint">
+          ROOM {String(robot.currentRoom).padStart(2,'0')} · SENSOR BUS
+        </span>
+      </div>
+
+      {/* Four metric blocks — side by side, no gap cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-line">
+
+        {/* Temperature */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="flex items-center gap-1 label-text text-amber">
+              <Thermometer className="w-3 h-3" /> TEMPERATURE
             </span>
-            <span className="text-sm text-ink-muted ml-1 mono">°C</span>
-            <p className="text-2xs text-ink-faint mt-0.5">Current room sensor</p>
+            <Trend value={tempDelta} unit="°C" />
           </div>
-          <Sparkline data={tempHistory} color="#F5B942" />
+          <div className="flex items-end justify-between">
+            <div>
+              <span
+                className="text-3xl mono font-bold text-ink tabular-nums leading-none"
+                style={{ transition: 'opacity 0.3s', opacity: prevTemp !== sensors.temperature ? 0.75 : 1 }}
+              >
+                {sensors.temperature.toFixed(1)}
+              </span>
+              <span className="text-sm mono text-ink-muted ml-0.5">°C</span>
+            </div>
+            <Sparkline data={tempHistory} color="#F2B84B" />
+          </div>
+          <p className="text-3xs mono text-ink-faint mt-1">
+            LIMIT 18–30°C
+          </p>
         </div>
-      </div>
 
-      {/* Humidity */}
-      <div className="panel p-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="label-text flex items-center gap-1.5">
-            <Droplets className="w-3 h-3 text-green" /> HUMIDITY
-          </span>
-          <Delta value={humidityDelta} unit="%" />
-        </div>
-        <div className="flex items-end justify-between">
-          <div>
-            <span className="text-2xl font-semibold mono text-ink tabular-nums">
-              {Math.round(currentSensors.humidity)}
+        {/* Humidity */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="flex items-center gap-1 label-text text-cyan">
+              <Droplets className="w-3 h-3" /> HUMIDITY
             </span>
-            <span className="text-sm text-ink-muted ml-1 mono">%</span>
-            <p className="text-2xs text-ink-faint mt-0.5">Relative humidity</p>
+            <Trend value={humDelta} unit="%" />
           </div>
-          <Sparkline data={humidityHistory} color="#B8F34A" />
+          <div className="flex items-end justify-between">
+            <div>
+              <span className="text-3xl mono font-bold text-ink tabular-nums leading-none">
+                {Math.round(sensors.humidity)}
+              </span>
+              <span className="text-sm mono text-ink-muted ml-0.5">%</span>
+            </div>
+            <Sparkline data={humHistory} color="#55D6E8" />
+          </div>
+          <p className="text-3xs mono text-ink-faint mt-1">
+            LIMIT &lt;75%
+          </p>
         </div>
-      </div>
 
-      {/* Sound */}
-      <div className="panel p-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="label-text flex items-center gap-1.5">
-            <AudioLines className="w-3 h-3 text-ink-muted" /> SOUND
-          </span>
-          <Delta value={soundDelta} unit="dB" />
+        {/* Sound */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="flex items-center gap-1 label-text">
+              <AudioLines className="w-3 h-3" /> SOUND LEVEL
+            </span>
+            <span className={`text-3xs mono font-semibold ${soundColor}`}>
+              {sensors.soundLevel}
+            </span>
+          </div>
+          <div className="flex items-end justify-between">
+            <div>
+              <span className={`text-3xl mono font-bold tabular-nums leading-none ${soundColor}`}>
+                {Math.round(sensors.sound)}
+              </span>
+              <span className="text-sm mono text-ink-muted ml-0.5">dB</span>
+            </div>
+            <SoundWaveform value={sensors.sound} />
+          </div>
+          <p className="text-3xs mono text-ink-faint mt-1">
+            LIMIT &lt;70 dB
+          </p>
         </div>
-        <div className="flex items-end justify-between">
+
+        {/* Robot state */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="flex items-center gap-1 label-text text-green">
+              <Bot className="w-3 h-3" /> ROBOT STATE
+            </span>
+            <span className="status-dot bg-green animate-pulse-green" />
+          </div>
           <div>
-            <span className={`text-lg font-semibold mono ${soundColor}`}>{soundStatus}</span>
-            <p className="text-2xs mono text-ink-muted mt-0.5">{Math.round(currentSensors.sound)} dB · Current level</p>
+            <span className={`text-xl mono font-bold leading-none ${
+              robot.state === 'PATROLLING' || robot.state === 'MOVING' ? 'text-green' :
+              robot.state === 'IDLE' ? 'text-amber' : 'text-ink-faint'
+            }`}>
+              {robot.state}
+            </span>
           </div>
-          <Sparkline data={soundHistory} color={soundStatus === 'NORMAL' ? '#7D8790' : soundStatus === 'LOUD' ? '#F5B942' : '#FF4D4D'} />
-        </div>
-      </div>
-
-      {/* Robot */}
-      <div className="panel p-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="label-text flex items-center gap-1.5">
-            <Bot className="w-3 h-3 text-green" /> ROBOT
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse-green" />
-        </div>
-        <div>
-          <span className="text-lg font-semibold mono text-green">{robot.state}</span>
           {robot.targetRoom !== null ? (
-            <p className="text-2xs mono text-ink-muted mt-0.5">
-              ROOM {String(robot.currentRoom).padStart(2, '0')} → ROOM {String(robot.targetRoom).padStart(2, '0')}
+            <p className="text-2xs mono text-ink-muted mt-1.5">
+              ROOM {String(robot.currentRoom).padStart(2,'0')} → ROOM {String(robot.targetRoom).padStart(2,'0')}
             </p>
           ) : (
-            <p className="text-2xs mono text-ink-muted mt-0.5">AT ROOM {String(robot.currentRoom).padStart(2, '0')}</p>
+            <p className="text-2xs mono text-ink-faint mt-1.5">
+              AT ROOM {String(robot.currentRoom).padStart(2,'0')}
+            </p>
           )}
-          {robot.etaSeconds > 0 && <p className="text-2xs mono text-ink-faint">ETA: {robot.etaSeconds} sec</p>}
+          {robot.etaSeconds > 0 && (
+            <p className="text-3xs mono text-cyan mt-0.5">ETA {robot.etaSeconds}s</p>
+          )}
         </div>
+
       </div>
     </div>
   );

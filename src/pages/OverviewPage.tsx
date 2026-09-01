@@ -26,25 +26,25 @@ export function OverviewPage({ onNavigateAlerts }: OverviewPageProps) {
 
   return (
     <div className="space-y-3">
-      {/* Top toolbar */}
+      {/* Top toolbar — minimal, not heading-heavy */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold text-ink tracking-wide">COMMAND CENTER OVERVIEW</h2>
-          <p className="text-2xs mono text-ink-faint">Real-time monitoring · All systems operational</p>
+        <div className="flex items-center gap-3">
+          <span className="section-title text-ink">OVERVIEW</span>
+          <span className="text-3xs mono text-ink-faint">MISSION CONTROL · FULL SYSTEM STATUS</span>
         </div>
         <SimulationToggle />
       </div>
 
-      {/* Map + Room status */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-3">
+      {/* Primary row: Patrol Map (dominant) + Room Status (supporting) */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-3">
         <PatrolMap selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
         <RoomStatusPanel selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
       </div>
 
-      {/* Sensor cards */}
+      {/* Live telemetry — full width, dense */}
       <SensorCards history={history} />
 
-      {/* Alerts + Command console */}
+      {/* Alert console + Command console — equal columns */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         <AlertPanel onViewAll={onNavigateAlerts} onSelectAlert={setSelectedAlert} />
         <CommandConsole onSelectAlert={setSelectedAlert} />

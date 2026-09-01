@@ -15,23 +15,19 @@ export function RoomStatusPanel({ selectedRoom, onSelectRoom }: RoomStatusPanelP
   const crit = rooms.filter((r) => r.safety === 'critical').length;
 
   return (
-    <div className="panel flex flex-col">
-      {/* Header with summary counts */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-line">
-        <span className="label-text">ROOM STATUS</span>
+    <div className="panel flex flex-col" style={{ borderTop: '2px solid #263540' }}>
+      {/* Header */}
+      <div className="panel-header bg-base-elevated">
+        <span className="section-title">ROOM STATUS</span>
         <div className="flex items-center gap-3">
-          {crit > 0 && (
-            <span className="text-2xs mono text-red font-semibold">{crit} CRIT</span>
-          )}
-          {warn > 0 && (
-            <span className="text-2xs mono text-amber">{warn} WARN</span>
-          )}
+          {crit > 0 && <span className="text-2xs mono font-bold text-red">{crit} CRIT</span>}
+          {warn > 0 && <span className="text-2xs mono text-amber">{warn} WARN</span>}
           <span className="text-2xs mono text-ink-faint">{safe}/{rooms.length} safe</span>
         </div>
       </div>
 
-      {/* Room list — no padding between cards, uses border separation */}
-      <div className="divide-y divide-line-faint overflow-y-auto scrollbar-thin" style={{ maxHeight: 420 }}>
+      {/* Room modules — separated by thin lines, no padding gaps */}
+      <div className="divide-y divide-line-faint overflow-y-auto scrollbar-thin flex-1">
         {rooms.map((room) => (
           <RoomCard
             key={room.id}
@@ -40,6 +36,12 @@ export function RoomStatusPanel({ selectedRoom, onSelectRoom }: RoomStatusPanelP
             onClick={() => onSelectRoom(room.id)}
           />
         ))}
+      </div>
+
+      {/* Footer — system identifier */}
+      <div className="px-3 py-1.5 border-t border-line flex items-center justify-between">
+        <span className="text-3xs mono text-ink-faint">SENSOR BUS NORMAL</span>
+        <span className="text-3xs mono text-ink-faint">ZONE A</span>
       </div>
     </div>
   );
