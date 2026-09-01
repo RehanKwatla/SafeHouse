@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: theme('colors.line.DEFAULT');
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: theme('colors.base.DEFAULT');
+    color: theme('colors.ink.DEFAULT');
+    font-family: theme('fontFamily.sans');
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: rgba(184, 243, 74, 0.2);
+    color: #fff;
+  }
+}
+
+@layer components {
+  .panel {
+    background-color: theme('colors.base.surface');
+    border: 1px solid theme('colors.line.DEFAULT');
+    border-radius: 4px;
+  }
+
+  .panel-elevated {
+    background-color: theme('colors.base.elevated');
+    border: 1px solid theme('colors.line.DEFAULT');
+    border-radius: 4px;
+  }
+
+  .label-text {
+    font-family: theme('fontFamily.mono');
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: theme('colors.ink.muted');
+  }
+
+  .mono {
+    font-family: theme('fontFamily.mono');
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: theme('colors.ink.muted');
+    border-radius: 3px;
+    transition: all 0.15s ease;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .nav-item:hover {
+    color: theme('colors.ink.DEFAULT');
+    background-color: theme('colors.base.hover');
+  }
+
+  .nav-item.active {
+    color: theme('colors.green.DEFAULT');
+    background-color: theme('colors.green.tint');
+  }
+
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: theme('colors.green.DEFAULT');
+    border-radius: 1px;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.line.strong') transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: theme('colors.line.strong');
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.ink.faint');
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
