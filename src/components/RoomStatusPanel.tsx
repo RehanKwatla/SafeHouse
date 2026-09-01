@@ -32,16 +32,18 @@ export function RoomStatusPanel({ selectedRoom, onSelectRoom, onViewAllRooms }: 
         ))}
       </div>
 
-      {/* Footer action button from screenshot */}
-      <div className="p-3 border-t border-line">
-        <button
-          onClick={onViewAllRooms}
-          className="w-full btn-hud btn-hud-green flex items-center justify-center gap-2 py-2 text-2xs mono font-bold tracking-widest cursor-pointer"
-        >
-          <LayoutGrid className="w-3.5 h-3.5" />
-          <span>VIEW ALL ROOMS</span>
-        </button>
-      </div>
+      {/* Footer: VIEW ALL ROOMS — only renders when callback is provided */}
+      {onViewAllRooms && (
+        <div className="p-3 border-t border-line shrink-0">
+          <button
+            onClick={onViewAllRooms}
+            className="w-full btn-hud btn-hud-green flex items-center justify-center gap-2 py-2 text-2xs mono font-bold tracking-widest cursor-pointer"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>VIEW ALL ROOMS</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

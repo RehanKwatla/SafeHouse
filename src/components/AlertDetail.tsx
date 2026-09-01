@@ -10,9 +10,9 @@ interface AlertDetailProps {
 
 const METRIC_ICONS = {
   temperature: Thermometer,
-  humidity:    Droplets,
-  sound:       AudioLines,
-  system:      AlertTriangle,
+  humidity: Droplets,
+  sound: AudioLines,
+  system: AlertTriangle,
 } as const;
 
 export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
@@ -24,53 +24,60 @@ export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
   const isActive = alert.state === 'ACTIVE';
 
   const severityBorderColor =
-    alert.severity === 'critical' ? '#FF4D4D' :
-    alert.severity === 'warning'  ? '#F2B84B' : '#263540';
+    alert.severity === 'critical' ? '#FF3B30' :
+    alert.severity === 'warning'  ? '#F2B84B' : '#1C292D';
 
-  const severityTextColor =
+  const severityTextClass =
     alert.severity === 'critical' ? 'text-red' :
     alert.severity === 'warning'  ? 'text-amber' : 'text-ink-muted';
 
+  const severityGlowClass =
+    alert.severity === 'critical' ? 'hud-glow-red' :
+    alert.severity === 'warning'  ? 'hud-glow-amber' : '';
+
   return (
     <div
-      className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="panel-elevated w-full max-w-sm animate-slide-in"
+        className={`hud-panel w-full max-w-sm animate-slide-in ${severityGlowClass}`}
         style={{ borderTop: `2px solid ${severityBorderColor}` }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="panel-header bg-base-elevated">
+        <div className="hud-header">
           <div className="flex items-center gap-2">
-            <Icon className={`w-3.5 h-3.5 ${severityTextColor}`} />
-            <span className="section-title">ALERT DETAIL</span>
+            <Icon className={`w-3.5 h-3.5 ${severityTextClass}`} />
+            <span className="hud-section-title">ALERT DETAIL</span>
           </div>
-          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors">
+          <button
+            onClick={onClose}
+            className="text-ink-muted hover:text-ink transition-colors cursor-pointer"
+            aria-label="Close alert detail"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-3 bg-base">
-
-          {/* Severity + state */}
+        <div className="p-4 space-y-3 bg-[#03080A]">
+          {/* Severity + state row */}
           <div className="flex items-center justify-between py-2 border-b border-line">
-            <span className={`text-sm mono font-bold tracking-widest ${severityTextColor}`}>
+            <span className={`text-sm mono font-black tracking-widest ${severityTextClass}`}>
               {alert.severity.toUpperCase()}
             </span>
-            <span className={`text-2xs mono font-semibold tracking-widest ${alertStateColor(alert.state)}`}>
+            <span className={`text-2xs mono font-bold tracking-widest ${alertStateColor(alert.state)}`}>
               {alert.state}
             </span>
           </div>
 
-          {/* Details table */}
-          <div className="space-y-2">
+          {/* Detail rows */}
+          <div className="space-y-2.5">
             {[
-              { label: 'ROOM',       value: formatRoom(alert.room) },
-              { label: 'METRIC',     value: alert.metric.toUpperCase() },
-              { label: 'DETECTED',   value: formatTimeSec(alert.timestamp) },
+              { label: 'ROOM',      value: formatRoom(alert.room) },
+              { label: 'SENSOR',    value: alert.metric.toUpperCase() },
+              { label: 'DETECTED',  value: formatTimeSec(alert.timestamp) },
               ...(alert.value !== undefined ? [{
                 label: 'READING',
                 value: `${alert.value.toFixed(1)}${alert.metric === 'temperature' ? '°C' : alert.metric === 'humidity' ? '%' : ' dB'}`,
@@ -81,13 +88,16 @@ export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
               }] : []),
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between">
-                <span className="label-text">{label}</span>
-                <span className="text-xs mono text-ink">{value}</span>
+                <span className="hud-label-text">{label}</span>
+                <span className="text-xs mono text-ink font-semibold">{value}</span>
               </div>
             ))}
+
             <div>
-              <span className="label-text block mb-1">DESCRIPTION</span>
-              <p className={`text-xs ${severityTextColor}`}>{alert.description}</p>
+              <span className="hud-label-text block mb-1">DESCRIPTION</span>
+              <p className={`text-xs mono font-semibold ${severityTextClass}`}>
+                {alert.description}
+              </p>
             </div>
           </div>
 
@@ -95,7 +105,8 @@ export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
           {isActive && (
             <button
               onClick={() => { onResolve(alertId); onClose(); }}
-              className="btn-tech btn-green w-full justify-center mt-2"
+              className="btn-hud btn-hud-green w-full justify-center mt-2 cursor-pointer"
+              aria-label="Mark alert as resolved"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               MARK RESOLVED

@@ -8,19 +8,25 @@ interface SensorCardProps {
   history: SensorHistoryPoint[];
 }
 
-// Glowing Mini SVG Line Chart for Telemetry Cards
+// Safe SVG gradient IDs — no special characters, derived from a stable name
+const GRAD_GREEN = 'telGradGreen';
+const GRAD_CYAN  = 'telGradCyan';
+
 function TelemetryLineChart({
   data,
-  color,
+  gradId,
+  strokeColor,
   width = 110,
   height = 36,
 }: {
   data: number[];
-  color: string;
+  gradId: string;
+  strokeColor: string;
   width?: number;
   height?: number;
 }) {
   if (data.length < 2) return <svg width={width} height={height} />;
+
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
@@ -37,37 +43,24 @@ function TelemetryLineChart({
   return (
     <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
       <defs>
-        <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={strokeColor} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
         </linearGradient>
       </defs>
-      {/* Area fill */}
-      <polygon points={areaStr} fill={`url(#grad-${color})`} />
-      {/* Glow line */}
-      <polyline
-        points={polylineStr}
-        fill="none"
-        stroke={color}
-        strokeWidth="3.5"
-        opacity="0.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Main Line */}
-      <polyline
-        points={polylineStr}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <polygon points={areaStr} fill={`url(#${gradId})`} />
+      {/* Glow */}
+      <polyline points={polylineStr} fill="none"
+        stroke={strokeColor} strokeWidth="3.5" opacity="0.2"
+        strokeLinecap="round" strokeLinejoin="round" />
+      {/* Line */}
+      <polyline points={polylineStr} fill="none"
+        stroke={strokeColor} strokeWidth="1.8"
+        strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-// Frequency waveform bars for Sound Level
 function AudioFrequencyBars({ value }: { value: number }) {
   const bars = 22;
   const ratio = Math.min(value / 90, 1);
@@ -81,12 +74,12 @@ function AudioFrequencyBars({ value }: { value: number }) {
         return (
           <div
             key={i}
-            className="w-[3px] rounded-xs transition-all duration-300"
+            className="w-[3px] transition-all duration-300"
             style={{
               height: `${h}px`,
               backgroundColor: color,
-              boxShadow: `0 0 4px ${color}66`,
               opacity: 0.85,
+              borderRadius: 1,
             }}
           />
         );
@@ -100,45 +93,42 @@ export function SensorCards({ history }: SensorCardProps) {
   const robot = sim.getRobot();
   const sensors = sim.getCurrentRoomSensors();
 
-  const tempHistory = useMemo(
-    () => history.slice(-20).map((h) => h.temperature),
-    [history],
-  );
-  const humHistory = useMemo(
-    () => history.slice(-20).map((h) => h.humidity),
-    [history],
-  );
+  const tempHistory = useMemo(() => history.slice(-20).map((h) => h.temperature), [history]);
+  const humHistory  = useMemo(() => history.slice(-20).map((h) => h.humidity),    [history]);
 
   const prevTemp = usePreviousValue(sensors.temperature);
 
   return (
     <div className="hud-panel select-none">
-      {/* Header */}
       <div className="hud-header">
         <span className="hud-section-title">LIVE TELEMETRY</span>
+        <span className="text-3xs mono text-ink-muted">
+          ROOM {String(robot.currentRoom).padStart(2, '0')} · ACTIVE SENSORS
+        </span>
       </div>
 
-      {/* 4 Inset Cards Row */}
       <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* 1. TEMPERATURE */}
+
+        {/* TEMPERATURE */}
         <div className="hud-panel-inset p-3 flex flex-col justify-between border border-line">
           <div className="flex items-center justify-between mb-1">
             <span className="hud-label-text">TEMPERATURE</span>
-            <ChevronRight className="w-3.5 h-3.5 text-ink-muted" />
+            <ChevronRight className="w-3.5 h-3.5 text-ink-muted shrink-0" />
           </div>
           <div className="mb-2">
             <span
               className="text-2xl lg:text-3xl mono font-black text-ink tabular-nums leading-none tracking-tight"
-              style={{
-                transition: 'opacity 0.3s',
-                opacity: prevTemp !== sensors.temperature ? 0.8 : 1,
-              }}
+              style={{ transition: 'opacity 0.3s', opacity: prevTemp !== sensors.temperature ? 0.75 : 1 }}
             >
               {sensors.temperature.toFixed(1)}°C
             </span>
           </div>
-          <div className="my-1">
-            <TelemetryLineChart data={tempHistory} color="#9CFF32" />
+          <div className="my-1 overflow-hidden">
+            <TelemetryLineChart
+              data={tempHistory}
+              gradId={GRAD_GREEN}
+              strokeColor="#9CFF32"
+            />
           </div>
           <div className="pt-2 border-t border-line flex items-center justify-between text-3xs mono">
             <span className="text-green font-bold">+0.3°C</span>
@@ -146,19 +136,23 @@ export function SensorCards({ history }: SensorCardProps) {
           </div>
         </div>
 
-        {/* 2. HUMIDITY */}
+        {/* HUMIDITY */}
         <div className="hud-panel-inset p-3 flex flex-col justify-between border border-line">
           <div className="flex items-center justify-between mb-1">
             <span className="hud-label-text">HUMIDITY</span>
-            <ChevronRight className="w-3.5 h-3.5 text-ink-muted" />
+            <ChevronRight className="w-3.5 h-3.5 text-ink-muted shrink-0" />
           </div>
           <div className="mb-2">
             <span className="text-2xl lg:text-3xl mono font-black text-ink tabular-nums leading-none tracking-tight">
               {Math.round(sensors.humidity)}%
             </span>
           </div>
-          <div className="my-1">
-            <TelemetryLineChart data={humHistory} color="#35D9E8" />
+          <div className="my-1 overflow-hidden">
+            <TelemetryLineChart
+              data={humHistory}
+              gradId={GRAD_CYAN}
+              strokeColor="#35D9E8"
+            />
           </div>
           <div className="pt-2 border-t border-line flex items-center justify-between text-3xs mono">
             <span className="text-cyan font-bold">-2%</span>
@@ -166,11 +160,11 @@ export function SensorCards({ history }: SensorCardProps) {
           </div>
         </div>
 
-        {/* 3. SOUND LEVEL */}
+        {/* SOUND LEVEL */}
         <div className="hud-panel-inset p-3 flex flex-col justify-between border border-line">
           <div className="flex items-center justify-between mb-1">
             <span className="hud-label-text">SOUND LEVEL</span>
-            <ChevronRight className="w-3.5 h-3.5 text-ink-muted" />
+            <ChevronRight className="w-3.5 h-3.5 text-ink-muted shrink-0" />
           </div>
           <div className="mb-2">
             <span className="text-2xl lg:text-3xl mono font-black text-ink tabular-nums leading-none tracking-tight">
@@ -181,37 +175,42 @@ export function SensorCards({ history }: SensorCardProps) {
             <AudioFrequencyBars value={sensors.sound} />
           </div>
           <div className="pt-2 border-t border-line flex items-center justify-between text-3xs mono">
-            <span className="text-green font-bold">
+            <span className={`font-bold ${
+              sensors.soundLevel === 'NORMAL' ? 'text-green'
+              : sensors.soundLevel === 'LOUD' ? 'text-amber' : 'text-red'
+            }`}>
               {sensors.soundLevel}
             </span>
             <span className="text-ink-muted">CURRENT LEVEL</span>
           </div>
         </div>
 
-        {/* 4. ROBOT STATE */}
+        {/* ROBOT STATE */}
         <div className="hud-panel-inset p-3 flex flex-col justify-between border border-line">
           <div className="flex items-center justify-between mb-1">
             <span className="hud-label-text">ROBOT STATE</span>
-            <ChevronsRight className="w-3.5 h-3.5 text-green" />
+            <ChevronsRight className="w-3.5 h-3.5 text-green shrink-0" />
           </div>
           <div className="mb-1">
             <span className="text-lg lg:text-xl mono font-black text-green leading-none tracking-wider block">
               {robot.state}
             </span>
             <span className="text-3xs mono text-cyan mt-1 block font-semibold">
-              ROOM {String(robot.currentRoom).padStart(2, '0')} → ROOM {String(robot.targetRoom || 3).padStart(2, '0')}
+              ROOM {String(robot.currentRoom).padStart(2,'0')}{' '}
+              {robot.targetRoom !== null ? `→ ROOM ${String(robot.targetRoom).padStart(2,'0')}` : ''}
             </span>
           </div>
-          <div className="h-10 flex items-center justify-center my-0.5 opacity-80">
+          <div className="h-10 flex items-center justify-center my-0.5 opacity-80 overflow-hidden">
             <WireframeRoverGraphic className="w-24 h-10" />
           </div>
           <div className="pt-2 border-t border-line flex items-center justify-between text-3xs mono">
             <span className="text-ink-muted">ETA:</span>
             <span className="text-green font-bold tabular-nums">
-              {robot.etaSeconds > 0 ? `${robot.etaSeconds} SEC` : '12 SEC'}
+              {robot.etaSeconds > 0 ? `${robot.etaSeconds} SEC` : '—'}
             </span>
           </div>
         </div>
+
       </div>
     </div>
   );

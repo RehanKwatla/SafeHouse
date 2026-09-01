@@ -62,7 +62,7 @@ interface HeaderProps {
   onAlertClick: () => void;
 }
 
-export function Header({ alertCount, onAlertClick }: HeaderProps) {
+export function Header({ dataSource, alertCount, onAlertClick }: HeaderProps) {
   const sim = useSimulation();
   const clock = useClock();
   const robot = sim.getRobot();
@@ -109,6 +109,17 @@ export function Header({ alertCount, onAlertClick }: HeaderProps) {
             </span>
           </div>
           <SignalStrengthBars percent={robot.connection} />
+        </div>
+
+        {/* Module C: Data Source */}
+        <div className="hud-panel-inset px-3.5 py-1.5 flex flex-col border border-line hidden lg:flex">
+          <span className="hud-label-text">DATA SOURCE</span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className={`status-dot ${dataSource === 'LIVE' ? 'bg-green' : 'bg-amber animate-pulse-amber'}`} />
+            <span className={`text-2xs mono font-bold tracking-widest ${dataSource === 'LIVE' ? 'text-green' : 'text-amber'}`}>
+              {dataSource === 'LIVE' ? 'LIVE ESP32' : 'SIMULATION'}
+            </span>
+          </div>
         </div>
       </div>
 

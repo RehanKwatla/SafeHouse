@@ -2,7 +2,19 @@
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
+    screens: {
+      xs:  '480px',
+      sm:  '640px',
+      md:  '768px',
+      lg:  '1024px',
+      xl:  '1280px',
+      '2xl': '1536px',
+    },
     extend: {
+      borderRadius: {
+        // xs sits between none and sm — used for subtle technical corners
+        xs: '2px',
+      },
       colors: {
         // Mission control backgrounds — dark blueprint / near-black cyan
         base: {
@@ -64,35 +76,35 @@ export default {
         '3xs': ['0.5625rem', { lineHeight: '0.875rem' }],
       },
       animation: {
-        'pulse-green': 'pulse-green 2s ease-in-out infinite',
-        'pulse-red': 'pulse-red 1s ease-in-out infinite',
-        'pulse-amber': 'pulse-amber 1.5s ease-in-out infinite',
-        'slide-in': 'slide-in 0.25s ease-out',
-        'fade-in': 'fade-in 0.25s ease-out',
-        'heartbeat': 'heartbeat 1.4s ease-in-out infinite',
-        'telemetry-flow': 'telemetry-flow 8s linear infinite',
-        'waveform': 'waveform 0.8s ease-in-out infinite alternate',
+        'pulse-green':      'pulse-green 2s ease-in-out infinite',
+        'pulse-red':        'pulse-red 1s ease-in-out infinite',
+        'pulse-amber':      'pulse-amber 1.5s ease-in-out infinite',
+        'slide-in':         'slide-in 0.25s ease-out',
+        'fade-in':          'fade-in 0.25s ease-out',
+        'heartbeat':        'heartbeat 1.4s ease-in-out infinite',
+        'telemetry-flow':   'telemetry-flow 8s linear infinite',
+        'waveform':         'waveform 0.8s ease-in-out infinite alternate',
       },
       keyframes: {
         'pulse-green': {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.4' },
+          '50%':       { opacity: '0.4' },
         },
         'pulse-red': {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.4' },
+          '50%':       { opacity: '0.4' },
         },
         'pulse-amber': {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.5' },
+          '50%':       { opacity: '0.5' },
         },
         'slide-in': {
           from: { opacity: '0', transform: 'translateY(6px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
         },
         'fade-in': {
           from: { opacity: '0' },
-          to: { opacity: '1' },
+          to:   { opacity: '1' },
         },
         'heartbeat': {
           '0%':   { transform: 'scaleY(1)' },

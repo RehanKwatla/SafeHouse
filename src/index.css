@@ -252,6 +252,18 @@
     border-color: #FF3B30;
   }
 
+  /* Inactive state for filter/toggle buttons — matches btn-hud base but muted */
+  .btn-hud-inactive {
+    color: #718385;
+    background-color: #070E10;
+    border: 1px solid #142A2E;
+  }
+  .btn-hud-inactive:hover {
+    color: #DDE8E8;
+    background-color: #0E1C1F;
+    border-color: #1F4046;
+  }
+
   /* Status Indicator dot */
   .status-dot {
     width: 6px;
@@ -286,6 +298,21 @@
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: #1F4046;
+  }
+
+  /* rounded-xs — used by several components for very subtle radius */
+  .rounded-xs {
+    border-radius: 2px;
+  }
+
+  /* text-cyan — direct colour utility matching the cyan token */
+  .text-cyan {
+    color: #35D9E8;
+  }
+
+  /* xs breakpoint helper — used by CommandConsole voice button label */
+  @media (min-width: 480px) {
+    .xs\:inline { display: inline; }
   }
 }
 

@@ -86,16 +86,16 @@ export function AlertsPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filter Tabs — all use btn-hud base, active gets green variant */}
       <div className="flex items-center gap-2 flex-wrap">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`btn-hud ${
+            className={`btn-hud cursor-pointer ${
               filter === f.id
-                ? 'btn-hud-green hud-glow-green'
-                : 'border border-line text-ink-muted hover:text-ink hover:border-line-strong bg-base-surface'
+                ? 'btn-hud-green'
+                : 'btn-hud-inactive'
             }`}
           >
             {f.label}

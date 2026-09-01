@@ -34,7 +34,7 @@ export function PatrolPage() {
       </div>
 
       {/* Live Map Centerpiece */}
-      <div className="min-h-[360px] lg:min-h-[400px]">
+      <div className="h-[380px] sm:h-[420px] lg:h-[460px]">
         <PatrolMap
           selectedRoom={selectedRoom}
           onSelectRoom={(id) => setSelectedRoom((prev) => (prev === id ? null : id))}
@@ -164,11 +164,8 @@ export function PatrolPage() {
               <div key={rec.id} className="flex items-center gap-3 px-3 py-2 text-xs mono">
                 <span
                   className={`status-dot ${
-                    rec.status === 'COMPLETED'
-                      ? 'bg-green'
-                      : rec.status === 'WARNING'
-                      ? 'bg-amber'
-                      : 'bg-red'
+                    rec.status === 'COMPLETED' ? 'bg-green' :
+                    rec.status === 'WARNING'   ? 'bg-amber' : 'bg-red'
                   }`}
                 />
                 <span className="text-3xs text-ink-muted w-16">

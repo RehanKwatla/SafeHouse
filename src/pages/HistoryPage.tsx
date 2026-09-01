@@ -236,12 +236,18 @@ export function HistoryPage() {
                 className="hud-panel-inset px-3 py-2 flex items-center justify-between text-2xs mono border border-line"
               >
                 <div className="flex items-center gap-2">
-                  <span className={`status-dot ${rec.status === 'COMPLETED' ? 'bg-green' : 'bg-amber'}`} />
+                  <span className={`status-dot ${
+                    rec.status === 'COMPLETED' ? 'bg-green' :
+                    rec.status === 'WARNING'   ? 'bg-amber' : 'bg-red'
+                  }`} />
                   <span className="text-ink font-bold">MISSION #{String(rec.id).padStart(3, '0')}</span>
                 </div>
                 <span className="text-3xs text-ink-muted">{formatTime(rec.timestamp)}</span>
-                <span className={`font-black text-3xs ${rec.status === 'COMPLETED' ? 'text-green' : 'text-amber'}`}>
-                  {rec.status}
+                <span className={`font-black text-3xs ${
+                  rec.status === 'COMPLETED' ? 'text-green' :
+                  rec.status === 'WARNING'   ? 'text-amber' : 'text-red'
+                }`}>
+                  {rec.status === 'COMPLETED' ? '✓ COMPLETE' : rec.status === 'WARNING' ? '▲ ALERTS' : '✗ ABORTED'}
                 </span>
               </div>
             ))}

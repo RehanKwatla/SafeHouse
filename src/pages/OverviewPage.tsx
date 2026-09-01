@@ -46,15 +46,20 @@ export function OverviewPage({ onNavigateAlerts }: OverviewPageProps) {
       </div>
 
       {/* Hero Map + Room Status Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-3">
-        <div className="min-h-[360px] lg:min-h-[400px]">
+      {/* h-full on children requires the row itself to define a height */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-3 xl:items-stretch">
+        {/* Map wrapper: explicit height on every breakpoint so the SVG always has room */}
+        <div className="h-[380px] sm:h-[420px] lg:h-[460px]">
           <PatrolMap selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
         </div>
-        <RoomStatusPanel
-          selectedRoom={selectedRoom}
-          onSelectRoom={handleSelectRoom}
-          onViewAllRooms={onNavigateAlerts}
-        />
+        {/* Room panel fills the same row height on xl, scrolls internally */}
+        <div className="xl:h-[460px]">
+          <RoomStatusPanel
+            selectedRoom={selectedRoom}
+            onSelectRoom={handleSelectRoom}
+            onViewAllRooms={onNavigateAlerts}
+          />
+        </div>
       </div>
 
       {/* Live Telemetry Row */}
