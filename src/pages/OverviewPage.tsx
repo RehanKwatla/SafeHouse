@@ -24,38 +24,49 @@ export function OverviewPage({ onNavigateAlerts }: OverviewPageProps) {
     setSelectedRoom((prev) => (prev === roomId ? null : roomId));
   };
 
+  const handleSelectAlert = (alertId: string) => {
+    setSelectedAlert(alertId);
+    const alert = sim.getAlerts().find((a) => a.id === alertId);
+    if (alert) {
+      setSelectedRoom(alert.room);
+    }
+  };
+
   return (
     <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      {/* Subheader Toolbar */}
+      <div className="flex items-center justify-between pb-1">
         <div className="flex items-center gap-3">
-          <span className="section-title text-ink">OVERVIEW</span>
-          <span className="text-3xs mono text-ink-faint hidden sm:inline">
-            MISSION CONTROL · FULL SYSTEM STATUS
+          <span className="hud-section-title text-sm">MISSION OVERVIEW</span>
+          <span className="text-3xs mono text-ink-muted hidden sm:inline">
+            SECTOR 01 · FULL SYSTEM TELEMETRY
           </span>
         </div>
         <SimulationToggle />
       </div>
 
-      {/* Primary: Hero Map + Room Status */}
+      {/* Hero Map + Room Status Row */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-3">
-        {/* Map dominates */}
-        <div style={{ minHeight: '420px' }} className="xl:min-h-[480px]">
+        <div className="min-h-[360px] lg:min-h-[400px]">
           <PatrolMap selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
         </div>
-        <RoomStatusPanel selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
+        <RoomStatusPanel
+          selectedRoom={selectedRoom}
+          onSelectRoom={handleSelectRoom}
+          onViewAllRooms={onNavigateAlerts}
+        />
       </div>
 
-      {/* Telemetry */}
+      {/* Live Telemetry Row */}
       <SensorCards history={history} />
 
-      {/* Alert console + Command console */}
+      {/* Alert Console + Command Console Row */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <AlertPanel onViewAll={onNavigateAlerts} onSelectAlert={setSelectedAlert} />
-        <CommandConsole onSelectAlert={setSelectedAlert} />
+        <AlertPanel onViewAll={onNavigateAlerts} onSelectAlert={handleSelectAlert} />
+        <CommandConsole onSelectAlert={handleSelectAlert} />
       </div>
 
-      {/* Alert detail modal */}
+      {/* Alert Detail Modal */}
       {selectedAlert && (
         <AlertDetail
           alertId={selectedAlert}

@@ -3,6 +3,7 @@ import { useSimulation } from '@/hooks/useSimulation';
 import { AlertRow } from '@/components/AlertRow';
 import { AlertDetail } from '@/components/AlertDetail';
 import { alertApi } from '@/api';
+import { SimulationToggle } from '@/components/SimulationToggle';
 
 type FilterType = 'ALL' | 'ACTIVE' | 'RESOLVED' | 'CRITICAL' | 'WARNING';
 
@@ -47,51 +48,54 @@ export function AlertsPage() {
   );
 
   return (
-    <div className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <span className="section-title text-ink">ALERT CENTER</span>
-        <span className="text-3xs mono text-ink-faint hidden sm:inline">
-          SAFETY VIOLATIONS · THRESHOLDS · SYSTEM EVENTS
-        </span>
+    <div className="space-y-3 select-none">
+      {/* Subheader */}
+      <div className="flex items-center justify-between pb-1">
+        <div className="flex items-center gap-3">
+          <span className="hud-section-title text-sm">ALERT OPERATIONS</span>
+          <span className="text-3xs mono text-ink-muted hidden sm:inline">
+            SAFETY THRESHOLD VIOLATIONS · SYSTEM LOG
+          </span>
+        </div>
+        <SimulationToggle />
       </div>
 
-      {/* Stats */}
-      <div className="panel" style={{ borderTop: '2px solid #263540' }}>
+      {/* Stats row */}
+      <div className="hud-panel">
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-line">
-          <div className="px-4 py-3">
-            <span className="label-text">TOTAL</span>
-            <p className="text-2xl mono font-bold text-ink mt-0.5 tabular-nums">{counts.all}</p>
+          <div className="p-3.5">
+            <span className="hud-label-text">TOTAL RECORDED</span>
+            <p className="text-2xl mono font-black text-ink mt-1 tabular-nums">{counts.all}</p>
           </div>
-          <div className="px-4 py-3">
-            <span className="label-text text-red">ACTIVE</span>
-            <p className="text-2xl mono font-bold text-red mt-0.5 tabular-nums">{counts.active}</p>
+          <div className="p-3.5">
+            <span className="hud-label-text text-red">ACTIVE ALERTS</span>
+            <p className="text-2xl mono font-black text-red mt-1 tabular-nums">{counts.active}</p>
           </div>
-          <div className="px-4 py-3">
-            <span className="label-text text-amber">WARNINGS</span>
-            <p className="text-2xl mono font-bold text-amber mt-0.5 tabular-nums">
+          <div className="p-3.5">
+            <span className="hud-label-text text-amber">WARNINGS</span>
+            <p className="text-2xl mono font-black text-amber mt-1 tabular-nums">
               {counts.warning}
             </p>
           </div>
-          <div className="px-4 py-3">
-            <span className="label-text text-green">RESOLVED</span>
-            <p className="text-2xl mono font-bold text-green mt-0.5 tabular-nums">
+          <div className="p-3.5">
+            <span className="hud-label-text text-green">RESOLVED</span>
+            <p className="text-2xl mono font-black text-green mt-1 tabular-nums">
               {counts.resolved}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 flex-wrap">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-3 py-1.5 text-2xs mono tracking-widest transition-colors border ${
+            className={`btn-hud ${
               filter === f.id
-                ? 'border-green text-green bg-green-tint'
-                : 'border-line text-ink-muted hover:text-ink hover:border-line-strong bg-base-surface'
+                ? 'btn-hud-green hud-glow-green'
+                : 'border border-line text-ink-muted hover:text-ink hover:border-line-strong bg-base-surface'
             }`}
           >
             {f.label}
@@ -99,38 +103,31 @@ export function AlertsPage() {
         ))}
       </div>
 
-      {/* Alert log */}
-      <div className="panel" style={{ borderTop: '2px solid #FF4D4D' }}>
-        <div className="panel-header bg-base-elevated">
-          <span className="section-title text-red">ALERT LOG</span>
-          <span className="text-3xs mono text-ink-faint">{filtered.length} ENTRIES</span>
+      {/* Main Alert Log Table */}
+      <div className="hud-panel">
+        <div className="hud-header">
+          <span className="text-xs mono font-black text-red tracking-wider">ACTIVE INCIDENT LOG</span>
+          <span className="text-3xs mono text-ink-muted">{filtered.length} INCIDENTS</span>
         </div>
 
-        <div className="flex items-center border-b border-line px-0 py-1 bg-base">
-          <span className="text-3xs mono text-ink-faint w-[62px] px-3">TIME</span>
-          <span className="text-3xs mono text-ink-faint w-[64px] px-2">LOCATION</span>
-          <span className="text-3xs mono text-ink-faint flex-1 px-2">EVENT</span>
-          <span className="text-3xs mono text-ink-faint px-3">STATE</span>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <p className="text-xs mono text-green">ALL CLEAR</p>
-            <p className="text-3xs mono text-ink-faint mt-1">No alerts in this category.</p>
-          </div>
-        ) : (
-          <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: 560 }}>
-            {filtered.map((alert) => (
+        <div className="p-3 space-y-2 max-h-[520px] overflow-y-auto scrollbar-thin">
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center text-xs mono text-green">
+              NO ALERTS IN THIS CATEGORY · ALL SYSTEMS OPERATING WITHIN THRESHOLDS
+            </div>
+          ) : (
+            filtered.map((alert) => (
               <AlertRow
                 key={alert.id}
                 alert={alert}
                 onClick={() => setSelectedAlert(alert.id)}
               />
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
 
+      {/* Alert Detail Modal */}
       {selectedAlert && (
         <AlertDetail
           alertId={selectedAlert}

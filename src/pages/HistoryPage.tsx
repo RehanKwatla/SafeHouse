@@ -11,12 +11,13 @@ import {
 import {
   Thermometer,
   Droplets,
-  AudioLines,
+  Activity,
   AlertTriangle,
-  Map as MapIcon,
+  Route,
 } from 'lucide-react';
 import { useSimulation } from '@/hooks/useSimulation';
 import { formatTime, formatRoom } from '@/utils/style';
+import { SimulationToggle } from '@/components/SimulationToggle';
 
 type TimeRange = '1H' | '12H' | '24H';
 
@@ -39,21 +40,14 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="panel-elevated px-2.5 py-1.5">
-      <p className="text-3xs mono text-ink-faint">{label}</p>
-      <p className="text-xs mono text-ink">
-        {payload[0].value.toFixed(1)}
-        {unit}
+    <div className="hud-panel-inset px-2.5 py-1.5 border border-line">
+      <p className="text-3xs mono text-ink-muted">{label}</p>
+      <p className="text-xs mono font-black text-green">
+        {payload[0].value.toFixed(1)} {unit}
       </p>
     </div>
   );
 }
-
-const CHART_PROPS = {
-  gridStroke: '#111C20',
-  axisStroke: '#1C292D',
-  tickFill: '#3D4F55',
-};
 
 export function HistoryPage() {
   const sim = useSimulation();
@@ -80,70 +74,72 @@ export function HistoryPage() {
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 select-none">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          <span className="section-title text-ink">HISTORY & TELEMETRY</span>
-          <span className="text-3xs mono text-ink-faint hidden sm:inline">
-            SENSOR TRENDS · PATROL LOG · ALERT LOG
+          <span className="hud-section-title text-sm">TELEMETRY & PATROL HISTORY</span>
+          <span className="text-3xs mono text-ink-muted hidden sm:inline">
+            SENSOR TREND ARCHIVES · INCIDENT LOGS
           </span>
         </div>
 
-        <div className="flex items-center border border-line bg-base">
-          {RANGES.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => setRange(r.id)}
-              className={`px-4 py-1.5 text-2xs mono tracking-widest transition-colors border-r border-line last:border-r-0 ${
-                range === r.id
-                  ? 'bg-green-tint text-green'
-                  : 'text-ink-muted hover:text-ink hover:bg-base-hover'
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center border border-line bg-base-surface">
+            {RANGES.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setRange(r.id)}
+                className={`px-3 py-1 text-2xs mono font-bold tracking-widest transition-colors cursor-pointer ${
+                  range === r.id
+                    ? 'bg-green/10 text-green border-r border-green'
+                    : 'text-ink-muted hover:text-ink border-r border-line last:border-r-0'
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <SimulationToggle />
         </div>
       </div>
 
-      {/* Charts */}
-      <div className="panel" style={{ borderTop: '2px solid #263540' }}>
-        <div className="panel-header bg-base-elevated">
-          <span className="section-title">SENSOR TRENDS</span>
-          <span className="text-3xs mono text-ink-faint">{chartData.length} DATA POINTS</span>
+      {/* Sensor Trend Charts */}
+      <div className="hud-panel">
+        <div className="hud-header">
+          <span className="hud-section-title">SENSOR TELEMETRY CHARTS</span>
+          <span className="text-3xs mono text-ink-muted">{chartData.length} SAMPLES</span>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-line">
-          {/* Temperature */}
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="label-text flex items-center gap-1.5 text-amber">
-                <Thermometer className="w-3 h-3" /> TEMPERATURE
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-line p-1">
+          {/* 1. Temperature */}
+          <div className="p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="hud-label-text flex items-center gap-1.5 text-green font-bold">
+                <Thermometer className="w-3.5 h-3.5" /> TEMPERATURE (°C)
               </span>
-              <span className="text-3xs mono text-ink-faint">°C</span>
             </div>
             <ResponsiveContainer width="100%" height={120}>
               <LineChart data={chartData} margin={{ top: 2, right: 4, bottom: 2, left: -24 }}>
-                <CartesianGrid strokeDasharray="2 4" stroke={CHART_PROPS.gridStroke} />
+                <CartesianGrid strokeDasharray="2 4" stroke="#0D1E22" />
                 <XAxis
                   dataKey="time"
-                  tick={{ fill: CHART_PROPS.tickFill, fontSize: 8, fontFamily: 'monospace' }}
-                  axisLine={{ stroke: CHART_PROPS.axisStroke }}
+                  tick={{ fill: '#4E686E', fontSize: 8, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: '#142A2E' }}
                   tickLine={false}
-                  interval="preserveStartEnd"
                 />
                 <YAxis
-                  tick={{ fill: CHART_PROPS.tickFill, fontSize: 8, fontFamily: 'monospace' }}
-                  axisLine={{ stroke: CHART_PROPS.axisStroke }}
+                  tick={{ fill: '#4E686E', fontSize: 8, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: '#142A2E' }}
                   tickLine={false}
-                  domain={[10, 35]}
+                  domain={[12, 34]}
                 />
                 <Tooltip content={<ChartTooltip unit="°C" />} />
                 <Line
                   type="monotone"
                   dataKey="temperature"
-                  stroke="#F2B84B"
-                  strokeWidth={1.5}
+                  stroke="#9CFF32"
+                  strokeWidth={2}
                   dot={false}
                   animationDuration={300}
                 />
@@ -151,36 +147,34 @@ export function HistoryPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Humidity */}
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="label-text flex items-center gap-1.5 text-cyan">
-                <Droplets className="w-3 h-3" /> HUMIDITY
+          {/* 2. Humidity */}
+          <div className="p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="hud-label-text flex items-center gap-1.5 text-cyan font-bold">
+                <Droplets className="w-3.5 h-3.5" /> HUMIDITY (%)
               </span>
-              <span className="text-3xs mono text-ink-faint">%</span>
             </div>
             <ResponsiveContainer width="100%" height={120}>
               <LineChart data={chartData} margin={{ top: 2, right: 4, bottom: 2, left: -24 }}>
-                <CartesianGrid strokeDasharray="2 4" stroke={CHART_PROPS.gridStroke} />
+                <CartesianGrid strokeDasharray="2 4" stroke="#0D1E22" />
                 <XAxis
                   dataKey="time"
-                  tick={{ fill: CHART_PROPS.tickFill, fontSize: 8, fontFamily: 'monospace' }}
-                  axisLine={{ stroke: CHART_PROPS.axisStroke }}
+                  tick={{ fill: '#4E686E', fontSize: 8, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: '#142A2E' }}
                   tickLine={false}
-                  interval="preserveStartEnd"
                 />
                 <YAxis
-                  tick={{ fill: CHART_PROPS.tickFill, fontSize: 8, fontFamily: 'monospace' }}
-                  axisLine={{ stroke: CHART_PROPS.axisStroke }}
+                  tick={{ fill: '#4E686E', fontSize: 8, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: '#142A2E' }}
                   tickLine={false}
-                  domain={[20, 100]}
+                  domain={[25, 95]}
                 />
                 <Tooltip content={<ChartTooltip unit="%" />} />
                 <Line
                   type="monotone"
                   dataKey="humidity"
-                  stroke="#55D6E8"
-                  strokeWidth={1.5}
+                  stroke="#35D9E8"
+                  strokeWidth={2}
                   dot={false}
                   animationDuration={300}
                 />
@@ -188,36 +182,34 @@ export function HistoryPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Sound */}
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="label-text flex items-center gap-1.5">
-                <AudioLines className="w-3 h-3" /> SOUND LEVEL
+          {/* 3. Sound */}
+          <div className="p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="hud-label-text flex items-center gap-1.5 text-ink font-bold">
+                <Activity className="w-3.5 h-3.5" /> SOUND LEVEL (dB)
               </span>
-              <span className="text-3xs mono text-ink-faint">dB</span>
             </div>
             <ResponsiveContainer width="100%" height={120}>
               <LineChart data={chartData} margin={{ top: 2, right: 4, bottom: 2, left: -24 }}>
-                <CartesianGrid strokeDasharray="2 4" stroke={CHART_PROPS.gridStroke} />
+                <CartesianGrid strokeDasharray="2 4" stroke="#0D1E22" />
                 <XAxis
                   dataKey="time"
-                  tick={{ fill: CHART_PROPS.tickFill, fontSize: 8, fontFamily: 'monospace' }}
-                  axisLine={{ stroke: CHART_PROPS.axisStroke }}
+                  tick={{ fill: '#4E686E', fontSize: 8, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: '#142A2E' }}
                   tickLine={false}
-                  interval="preserveStartEnd"
                 />
                 <YAxis
-                  tick={{ fill: CHART_PROPS.tickFill, fontSize: 8, fontFamily: 'monospace' }}
-                  axisLine={{ stroke: CHART_PROPS.axisStroke }}
+                  tick={{ fill: '#4E686E', fontSize: 8, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: '#142A2E' }}
                   tickLine={false}
-                  domain={[0, 100]}
+                  domain={[15, 95]}
                 />
-                <Tooltip content={<ChartTooltip unit=" dB" />} />
+                <Tooltip content={<ChartTooltip unit="dB" />} />
                 <Line
                   type="monotone"
                   dataKey="sound"
-                  stroke="#758287"
-                  strokeWidth={1.5}
+                  stroke="#F2B84B"
+                  strokeWidth={2}
                   dot={false}
                   animationDuration={300}
                 />
@@ -227,98 +219,62 @@ export function HistoryPage() {
         </div>
       </div>
 
-      {/* Patrol + Alert log */}
+      {/* History Log Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* Patrol log */}
-        <div className="panel" style={{ borderTop: '2px solid #263540' }}>
-          <div className="panel-header bg-base-elevated">
-            <span className="section-title flex items-center gap-1.5">
-              <MapIcon className="w-3 h-3" /> PATROL LOG
+        {/* Patrol History */}
+        <div className="hud-panel">
+          <div className="hud-header">
+            <span className="hud-section-title flex items-center gap-1.5">
+              <Route className="w-3.5 h-3.5" /> PATROL MISSION ARCHIVES
             </span>
-            <span className="text-3xs mono text-ink-faint">{records.length} MISSIONS</span>
+            <span className="text-3xs mono text-ink-muted">{records.length} MISSIONS</span>
           </div>
-          {records.length === 0 ? (
-            <p className="px-4 py-6 text-2xs mono text-ink-faint">No patrol records yet.</p>
-          ) : (
-            <div className="divide-y divide-line-faint max-h-72 overflow-y-auto scrollbar-thin">
-              {records.map((rec) => (
-                <div key={rec.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <span
-                    className={`status-dot ${
-                      rec.status === 'COMPLETED'
-                        ? 'bg-green'
-                        : rec.status === 'WARNING'
-                        ? 'bg-amber'
-                        : 'bg-red'
-                    }`}
-                  />
-                  <span className="text-2xs mono text-ink-faint w-14">
-                    {formatTime(rec.timestamp)}
-                  </span>
-                  <span className="text-2xs mono text-ink">
-                    MISSION #{String(rec.id).padStart(3, '0')}
-                  </span>
-                  <span
-                    className={`text-2xs mono ml-auto ${
-                      rec.status === 'COMPLETED'
-                        ? 'text-green'
-                        : rec.status === 'WARNING'
-                        ? 'text-amber'
-                        : 'text-red'
-                    }`}
-                  >
-                    {rec.status === 'COMPLETED' ? '✓' : rec.status === 'WARNING' ? '⚠' : '✗'}
-                  </span>
+          <div className="p-2 space-y-1.5 max-h-64 overflow-y-auto scrollbar-thin">
+            {records.map((rec) => (
+              <div
+                key={rec.id}
+                className="hud-panel-inset px-3 py-2 flex items-center justify-between text-2xs mono border border-line"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`status-dot ${rec.status === 'COMPLETED' ? 'bg-green' : 'bg-amber'}`} />
+                  <span className="text-ink font-bold">MISSION #{String(rec.id).padStart(3, '0')}</span>
                 </div>
-              ))}
-            </div>
-          )}
+                <span className="text-3xs text-ink-muted">{formatTime(rec.timestamp)}</span>
+                <span className={`font-black text-3xs ${rec.status === 'COMPLETED' ? 'text-green' : 'text-amber'}`}>
+                  {rec.status}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Alert log */}
-        <div className="panel" style={{ borderTop: '2px solid #263540' }}>
-          <div className="panel-header bg-base-elevated">
-            <span className="section-title flex items-center gap-1.5 text-red">
-              <AlertTriangle className="w-3 h-3" /> ALERT LOG
+        {/* Alert History */}
+        <div className="hud-panel">
+          <div className="hud-header">
+            <span className="hud-section-title flex items-center gap-1.5 text-red">
+              <AlertTriangle className="w-3.5 h-3.5" /> INCIDENT HISTORY LOG
             </span>
-            <span className="text-3xs mono text-ink-faint">{alerts.length} ENTRIES</span>
+            <span className="text-3xs mono text-ink-muted">{alerts.length} ENTRIES</span>
           </div>
-          {alerts.length === 0 ? (
-            <p className="px-4 py-6 text-2xs mono text-ink-faint">No alerts recorded.</p>
-          ) : (
-            <div className="divide-y divide-line-faint max-h-72 overflow-y-auto scrollbar-thin">
-              {alerts.slice(0, 20).map((alert) => (
-                <div
-                  key={alert.id}
-                  className="flex items-center gap-3 px-4 py-2.5"
-                  style={{
-                    borderLeft: `2px solid ${
-                      alert.severity === 'critical'
-                        ? '#FF4D4D'
-                        : alert.severity === 'warning'
-                        ? '#F2B84B'
-                        : '#263540'
-                    }`,
-                  }}
-                >
-                  <span className="text-2xs mono text-ink-faint w-14">
-                    {formatTime(alert.timestamp)}
-                  </span>
-                  <span className="text-2xs mono text-cyan w-14">{formatRoom(alert.room)}</span>
-                  <span className="text-xs text-ink-muted flex-1 truncate">
-                    {alert.description}
-                  </span>
-                  <span
-                    className={`text-3xs mono ${
-                      alert.state === 'ACTIVE' ? 'text-red' : 'text-green'
-                    }`}
-                  >
-                    {alert.state}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="p-2 space-y-1.5 max-h-64 overflow-y-auto scrollbar-thin">
+            {alerts.map((alert) => (
+              <div
+                key={alert.id}
+                className={`hud-panel-inset px-3 py-2 flex items-center justify-between text-2xs mono border ${
+                  alert.severity === 'critical' ? 'border-red/40' : 'border-amber/40'
+                }`}
+              >
+                <span className="text-3xs text-ink-muted">{formatTime(alert.timestamp)}</span>
+                <span className="text-cyan font-bold">{formatRoom(alert.room)}</span>
+                <span className="text-ink-muted truncate max-w-[140px] text-3xs font-semibold">
+                  {alert.description}
+                </span>
+                <span className={`font-black text-3xs ${alert.state === 'ACTIVE' ? 'text-red' : 'text-green'}`}>
+                  {alert.state}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

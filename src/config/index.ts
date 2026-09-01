@@ -39,27 +39,55 @@ export interface IsoRoomDef {
   gw: number;
   gd: number;
   wh: number;
+  code: string;
+  type: string;
 }
 
 export const ISO_ROOMS: IsoRoomDef[] = [
-  { id: 1, gx: 0.5, gy: 0.3, gw: 1.6, gd: 1.2, wh: 0.55 },
-  { id: 2, gx: 2.5, gy: 0.3, gw: 1.6, gd: 1.2, wh: 0.55 },
-  { id: 3, gx: 4.5, gy: 0.3, gw: 1.6, gd: 1.2, wh: 0.55 },
-  { id: 4, gx: 2.5, gy: 2.0, gw: 1.6, gd: 1.2, wh: 0.55 },
+  { id: 1, gx: 0.8, gy: 0.4, gw: 1.8, gd: 1.4, wh: 0.6, code: 'SRV-01', type: 'SERVER INFRASTRUCTURE' },
+  { id: 2, gx: 3.1, gy: 0.4, gw: 1.8, gd: 1.4, wh: 0.6, code: 'STR-02', type: 'STORAGE DEPOT' },
+  { id: 3, gx: 5.4, gy: 0.4, gw: 1.8, gd: 1.4, wh: 0.6, code: 'HAL-03', type: 'MAIN CONCOURSE' },
+  { id: 4, gx: 3.1, gy: 2.3, gw: 1.8, gd: 1.4, wh: 0.6, code: 'WKS-04', type: 'MAINTENANCE WORKSHOP' },
 ];
 
-export const ISO_CORRIDORS = [
-  { gx: 2.1, gy: 0.6, gw: 0.4, gd: 0.6, wh: 0.3 },
-  { gx: 4.1, gy: 0.6, gw: 0.4, gd: 0.6, wh: 0.3 },
-  { gx: 2.8, gy: 1.5, gw: 0.7, gd: 0.5, wh: 0.3 },
+export interface IsoCorridorDef {
+  gx: number;
+  gy: number;
+  gw: number;
+  gd: number;
+  wh: number;
+}
+
+export const ISO_CORRIDORS: IsoCorridorDef[] = [
+  // Horizontal corridor connecting Room 1 to Room 2
+  { gx: 2.6, gy: 0.85, gw: 0.5, gd: 0.5, wh: 0.35 },
+  // Horizontal corridor connecting Room 2 to Room 3
+  { gx: 4.9, gy: 0.85, gw: 0.5, gd: 0.5, wh: 0.35 },
+  // Vertical corridor connecting Room 2 to Room 4
+  { gx: 3.65, gy: 1.8, gw: 0.7, gd: 0.5, wh: 0.35 },
+];
+
+export interface WaypointDef {
+  id: number;
+  label: string;
+  roomId: number;
+  gx: number;
+  gy: number;
+}
+
+export const ISO_WAYPOINTS: WaypointDef[] = [
+  { id: 1, label: 'W01', roomId: 1, gx: 1.7, gy: 1.1 },
+  { id: 2, label: 'W02', roomId: 2, gx: 4.0, gy: 1.1 },
+  { id: 3, label: 'W03', roomId: 3, gx: 6.3, gy: 1.1 },
+  { id: 4, label: 'W04', roomId: 4, gx: 4.0, gy: 3.0 },
 ];
 
 export const ISO_PROJ = {
-  cx: 380,
-  cy: 30,
-  sx: 72,
-  sy: 36,
-  sz: 42,
+  cx: 480,
+  cy: 70,
+  sx: 74,
+  sy: 37,
+  sz: 44,
 };
 
 /** Convert isometric grid coords to SVG pixel coords */
@@ -72,8 +100,8 @@ export function isoToSvg(gx: number, gy: number, gz: number = 0): [number, numbe
 
 /** Convert original 2D simulation coords to isometric grid coords */
 export function simToGrid(rx: number, ry: number): [number, number] {
-  const gx = 1.3 + (rx - 130) / 480 * 4;
-  const gy = 0.9 + (ry - 95) / 200 * 1.7;
+  const gx = 1.7 + ((rx - 130) / 480) * 4.6;
+  const gy = 1.1 + ((ry - 95) / 200) * 1.9;
   return [gx, gy];
 }
 
@@ -82,6 +110,13 @@ export function isoRoomCenter(roomId: number): [number, number] {
   const r = ISO_ROOMS.find((r) => r.id === roomId);
   if (!r) return [0, 0];
   return isoToSvg(r.gx + r.gw / 2, r.gy + r.gd / 2, r.wh);
+}
+
+/** Get isometric waypoint position in SVG space */
+export function isoWaypointCenter(waypointId: number): [number, number] {
+  const wp = ISO_WAYPOINTS.find((w) => w.id === waypointId);
+  if (!wp) return [0, 0];
+  return isoToSvg(wp.gx, wp.gy, 0.4);
 }
 
 /** Get robot position mapped to isometric SVG space */

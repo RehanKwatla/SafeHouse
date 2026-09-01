@@ -4,53 +4,55 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Mission control backgrounds — deep graphite
+        // Mission control backgrounds — dark blueprint / near-black cyan
         base: {
-          DEFAULT: '#06090B',
-          surface: '#0B1114',
-          elevated: '#10171A',
-          hover: '#142024',
+          DEFAULT: '#030607',
+          surface: '#070E10',
+          elevated: '#0C1719',
+          hover: '#101F22',
         },
-        // Borders — technical, not decorative
+        // Borders — thin technical cyan-slate
         line: {
-          DEFAULT: '#1C292D',
-          strong: '#263540',
-          faint: '#111C20',
-          accent: '#2A3F45',
+          DEFAULT: '#142A2E',
+          strong: '#1F4046',
+          faint: '#0B1A1C',
+          accent: '#29575F',
         },
-        // Primary safety green
+        // Primary SafeRoom neon green
         green: {
-          DEFAULT: '#A8F04D',
-          dim: '#7BB836',
-          bright: '#C2FF6A',
-          glow: 'rgba(168, 240, 77, 0.2)',
-          tint: 'rgba(168, 240, 77, 0.07)',
+          DEFAULT: '#9CFF32',
+          dim: '#70BD22',
+          bright: '#B5FF5E',
+          glow: 'rgba(156, 255, 50, 0.25)',
+          tint: 'rgba(156, 255, 50, 0.08)',
         },
-        // Technical cyan — navigation, coordinates, data
+        // Technical cyan — navigation, coordinates, sensors
         cyan: {
-          DEFAULT: '#55D6E8',
-          dim: '#3BA8B8',
-          tint: 'rgba(85, 214, 232, 0.07)',
+          DEFAULT: '#35D9E8',
+          dim: '#269EAA',
+          bright: '#5FF0FD',
+          tint: 'rgba(53, 217, 232, 0.08)',
+          glow: 'rgba(53, 217, 232, 0.25)',
         },
         // Warning amber
         amber: {
           DEFAULT: '#F2B84B',
-          dim: '#C4922E',
-          glow: 'rgba(242, 184, 75, 0.2)',
-          tint: 'rgba(242, 184, 75, 0.07)',
+          dim: '#B5872E',
+          glow: 'rgba(242, 184, 75, 0.25)',
+          tint: 'rgba(242, 184, 75, 0.08)',
         },
         // Critical red
         red: {
-          DEFAULT: '#FF4D4D',
-          dim: '#CC3D3D',
-          glow: 'rgba(255, 77, 77, 0.2)',
-          tint: 'rgba(255, 77, 77, 0.07)',
+          DEFAULT: '#FF3B30',
+          dim: '#C4271E',
+          glow: 'rgba(255, 59, 48, 0.25)',
+          tint: 'rgba(255, 59, 48, 0.08)',
         },
         // Text hierarchy
         ink: {
-          DEFAULT: '#E6ECEE',
-          muted: '#758287',
-          faint: '#3D4F55',
+          DEFAULT: '#DDE8E8',
+          muted: '#718385',
+          faint: '#3E5254',
         },
       },
       fontFamily: {

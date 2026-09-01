@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Mic, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Mic, Volume2, VolumeX, Radio } from 'lucide-react';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useSpeechRecognition, useSpeechSynthesis, type MicState } from '@/hooks/useSpeech';
 import { parseCommand } from '@/engine/commandParser';
@@ -25,7 +25,7 @@ function generateResponse(
         s.humidity <= 75;
       return ok
         ? {
-            text: `Room ${String(command.room).padStart(2, '0')}: ${s.temperature.toFixed(1)}°C, ${Math.round(s.humidity)}% humidity — all clear.`,
+            text: `Room ${String(command.room).padStart(2, '0')} is within configured safety limits.`,
             kind: 'success',
           }
         : {
@@ -37,17 +37,17 @@ function generateResponse(
       if (!command.room) return { text: 'Specify a room number.', kind: 'info' };
       deviceApi.sendCommand(command);
       return {
-        text: `Navigating to Room ${String(command.room).padStart(2, '0')}.`,
+        text: `Navigating to Room ${String(command.room).padStart(2, '0')}...`,
         kind: 'info',
       };
     }
     case 'patrol': {
       deviceApi.sendCommand(command);
-      return { text: 'Patrol started. Monitoring all rooms.', kind: 'success' };
+      return { text: 'Patrol cycle initiated. Monitoring all facility sectors.', kind: 'success' };
     }
     case 'stop': {
       deviceApi.sendCommand(command);
-      return { text: 'Rover stopped.', kind: 'warning' };
+      return { text: 'Rover stopped and standing by.', kind: 'warning' };
     }
     case 'move': {
       return { text: `Moving ${command.direction}.`, kind: 'info' };
@@ -55,7 +55,7 @@ function generateResponse(
     case 'status': {
       const robot = sim.getRobot();
       return {
-        text: `${robot.state} at Room ${String(robot.currentRoom).padStart(2, '0')}. Battery ${Math.round(robot.battery)}%, signal ${Math.round(robot.connection)}%.`,
+        text: `RVR-01 ${robot.state} at Room ${String(robot.currentRoom).padStart(2, '0')}. Battery ${Math.round(robot.battery)}%, signal ${Math.round(robot.connection)}%.`,
         kind: 'info',
       };
     }
@@ -64,7 +64,7 @@ function generateResponse(
       const issues = rooms.filter((r) => r.safety !== 'safe');
       if (!issues.length) return { text: 'All rooms clear. No active alerts.', kind: 'success' };
       return {
-        text: `${issues.length} room(s) need attention: ${issues
+        text: `${issues.length} sector(s) need attention: ${issues
           .map((r) => `Room ${String(r.id).padStart(2, '0')} (${r.safety})`)
           .join(', ')}.`,
         kind: 'warning',
@@ -72,7 +72,7 @@ function generateResponse(
     }
     default:
       return {
-        text: 'Unknown command. Try: patrol, stop, status, report, check room 2, go to room 3.',
+        text: 'Unknown instruction. Valid commands: patrol, stop, status, report, check room 2, go to room 3.',
         kind: 'warning',
       };
   }
@@ -80,45 +80,42 @@ function generateResponse(
 
 const HINTS = ['patrol', 'stop', 'status', 'check room 2', 'go to room 3', 'report'];
 
-const MIC_COLORS: Record<MicState, string> = {
-  idle: 'text-ink-faint hover:text-ink-muted',
-  listening: 'text-green animate-pulse-green',
-  processing: 'text-amber',
-  error: 'text-red',
-  unsupported: 'text-ink-faint opacity-40',
-};
-
-// Voice waveform — shows listening activity
-function VoiceWaveform({ active }: { active: boolean }) {
-  if (!active) return null;
-  return (
-    <div className="flex items-center gap-px h-3" aria-hidden="true">
-      {[3, 5, 8, 6, 9, 7, 4].map((h, i) => (
-        <div
-          key={i}
-          className="w-px bg-green animate-waveform"
-          style={{ height: `${h}px`, animationDelay: `${i * 0.08}s` }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsoleProps) {
   const sim = useSimulation();
   const [messages, setMessages] = useState<ConsoleMessage[]>([
     {
       id: 'sys-init',
       source: 'SYS',
-      text: 'SAFEROOM command console ready.',
+      text: 'Ready for instruction.',
       timestamp: Date.now(),
       kind: 'info',
     },
+    {
+      id: 'you-prev',
+      source: 'YOU',
+      text: '"Check Room 03."',
+      timestamp: Date.now() - 30000,
+    },
+    {
+      id: 'sys-prev1',
+      source: 'SYS',
+      text: 'Navigating to Room 03...',
+      timestamp: Date.now() - 25000,
+      kind: 'info',
+    },
+    {
+      id: 'sys-prev2',
+      source: 'SYS',
+      text: 'Room 03 is within configured safety limits.',
+      timestamp: Date.now() - 20000,
+      kind: 'success',
+    },
   ]);
   const [input, setInput] = useState('');
+  const [voiceStatusText, setVoiceStatusText] = useState('VOICE READY');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { enabled: voiceEnabled, speak, toggle: toggleVoice } = useSpeechSynthesis();
+  const { enabled: voiceEnabled, toggle: toggleVoice, speak } = useSpeechSynthesis();
 
   const executeCommand = useCallback(
     (raw: string) => {
@@ -128,7 +125,7 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
       const userMsg: ConsoleMessage = {
         id: `you-${Date.now()}`,
         source: 'YOU',
-        text: trimmed,
+        text: `"${trimmed}"`,
         timestamp: Date.now(),
       };
       const response = generateResponse(parseCommand(trimmed), sim);
@@ -141,12 +138,25 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
       };
 
       setMessages((prev) => [...prev, userMsg, sysMsg]);
+      setVoiceStatusText('✓ COMMAND ACCEPTED');
+      setTimeout(() => setVoiceStatusText('VOICE READY'), 3500);
+
       if (voiceEnabled) speak(response.text);
     },
     [sim, voiceEnabled, speak],
   );
 
-  const { micState, start, stop, isSupported } = useSpeechRecognition(executeCommand);
+  const { micState, start, stop } = useSpeechRecognition(executeCommand);
+
+  useEffect(() => {
+    if (micState === 'listening') {
+      setVoiceStatusText('● LISTENING...');
+    } else if (micState === 'processing') {
+      setVoiceStatusText('◌ PROCESSING...');
+    } else if (micState === 'error') {
+      setVoiceStatusText('⚠ VOICE ERROR');
+    }
+  }, [micState]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -163,75 +173,49 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
   };
 
   return (
-    <div className="panel flex flex-col" style={{ borderTop: '2px solid #263540' }}>
+    <div className="hud-panel flex flex-col h-full select-none">
       {/* Header */}
-      <div className="panel-header bg-base-elevated">
+      <div className="hud-header">
+        <span className="hud-section-title">COMMAND CONSOLE</span>
         <div className="flex items-center gap-2">
-          <span className="text-green mono text-xs font-bold">{'>'}_</span>
-          <span className="section-title">COMMAND CONSOLE</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <VoiceWaveform active={micState === 'listening'} />
-          {micState === 'listening' && (
-            <span className="text-3xs mono text-green tracking-widest">LISTENING</span>
-          )}
-          {micState === 'processing' && (
-            <span className="text-3xs mono text-amber tracking-widest">PROCESSING</span>
-          )}
           <button
             onClick={toggleVoice}
-            className="flex items-center gap-1 text-3xs mono text-ink-faint hover:text-ink-muted transition-colors"
-            title={voiceEnabled ? 'Voice response on' : 'Voice response off'}
+            className={`flex items-center gap-1 text-3xs mono font-bold cursor-pointer transition-colors ${
+              voiceEnabled ? 'text-green' : 'text-ink-muted hover:text-ink'
+            }`}
+            title="Toggle Voice Readout"
           >
             {voiceEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
-            <span className="hidden sm:inline tracking-widest">
-              {voiceEnabled ? 'VOICE ON' : 'VOICE OFF'}
-            </span>
+            <span>{voiceEnabled ? 'TTS ON' : 'TTS OFF'}</span>
           </button>
         </div>
       </div>
 
-      {/* Message stream — terminal style */}
+      {/* Terminal Message Stream from Screenshot */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2 bg-base"
-        style={{
-          minHeight: 140,
-          maxHeight: 220,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '0.7rem',
-        }}
+        className="flex-1 overflow-y-auto scrollbar-thin p-3 bg-[#03080A] space-y-1.5 font-mono text-xs"
+        style={{ minHeight: '110px', maxHeight: '150px' }}
       >
         {messages.map((msg) => {
           const isUser = msg.source === 'YOU';
           return (
-            <div key={msg.id} className="py-0.5 leading-relaxed">
-              <span className="text-ink-faint mr-2 select-none">
-                {isUser
-                  ? '>'
-                  : msg.kind === 'success'
-                  ? '◆'
-                  : msg.kind === 'warning'
-                  ? '▲'
-                  : msg.kind === 'critical'
-                  ? '!'
-                  : '·'}
-              </span>
-              <span className="text-ink-faint mr-1.5 select-none">
-                {isUser ? 'YOU' : 'SYS'}
+            <div key={msg.id} className="flex items-start gap-2.5 leading-tight">
+              <span className={`font-bold text-3xs w-7 shrink-0 ${isUser ? 'text-cyan' : 'text-green'}`}>
+                {msg.source}
               </span>
               <span
-                className={
+                className={`text-xs ${
                   isUser
-                    ? 'text-ink'
+                    ? 'text-cyan font-semibold'
                     : msg.kind === 'success'
-                    ? 'text-green'
+                    ? 'text-ink'
                     : msg.kind === 'warning'
                     ? 'text-amber'
                     : msg.kind === 'critical'
                     ? 'text-red'
                     : 'text-ink-muted'
-                }
+                }`}
               >
                 {msg.text}
               </span>
@@ -240,54 +224,75 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
         })}
       </div>
 
-      {/* Quick commands */}
-      <div className="px-3 py-1.5 border-t border-line-faint flex items-center gap-1.5 flex-wrap bg-base">
+      {/* Quick Command Suggestions Chips */}
+      <div className="px-2.5 py-1 bg-[#050C0E] border-t border-line flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
+        <span className="text-3xs mono text-ink-muted shrink-0">HINTS:</span>
         {HINTS.map((hint) => (
           <button
             key={hint}
-            onClick={() => {
-              executeCommand(hint);
-              inputRef.current?.focus();
-            }}
-            className="px-1.5 py-0.5 text-3xs mono text-ink-faint border border-line hover:border-line-strong hover:text-ink-muted transition-colors tracking-wider"
+            onClick={() => executeCommand(hint)}
+            className="px-1.5 py-0.5 rounded-[1px] bg-base-elevated border border-line hover:border-green text-3xs mono text-ink-muted hover:text-green transition-colors shrink-0 cursor-pointer"
           >
             {hint}
           </button>
         ))}
       </div>
 
-      {/* Input bar */}
-      <div className="border-t border-line px-3 py-2 flex items-center gap-2 bg-base-elevated">
-        <span className="text-green mono text-sm font-bold shrink-0 select-none">{'>'}</span>
+      {/* Input Bar with Dedicated Microphone Control from Screenshot */}
+      <div className="p-2 border-t border-line bg-base-surface flex items-center gap-2">
+        {/* Dedicated Voice Button with Live State */}
+        <button
+          onClick={handleMicClick}
+          className={`px-2.5 py-1 rounded-xs flex items-center gap-1.5 border transition-all cursor-pointer ${
+            micState === 'listening'
+              ? 'border-green bg-green/20 text-green hud-glow-green animate-pulse'
+              : micState === 'processing'
+              ? 'border-amber bg-amber/20 text-amber'
+              : micState === 'error'
+              ? 'border-red bg-red/20 text-red'
+              : 'border-green/40 bg-green/10 text-green hover:border-green hover:bg-green/15'
+          }`}
+          title="Toggle Voice Command"
+        >
+          <Mic className="w-3.5 h-3.5" />
+          <span className="text-3xs mono font-black tracking-widest uppercase">
+            {voiceStatusText}
+          </span>
+        </button>
+
+        {/* Text Input */}
         <input
           ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          placeholder="enter command..."
-          className="flex-1 bg-transparent text-xs mono text-ink placeholder:text-ink-faint focus:outline-none tracking-wide"
+          placeholder="TYPE INSTRUCTION..."
+          className="flex-1 bg-transparent text-xs mono text-ink placeholder:text-ink-faint focus:outline-none tracking-wider px-1"
           aria-label="Enter command"
         />
 
-        {isSupported && (
-          <button
-            onClick={handleMicClick}
-            className={`w-7 h-7 flex items-center justify-center transition-colors ${MIC_COLORS[micState]}`}
-            aria-label={micState === 'listening' ? 'Stop listening' : 'Start voice command'}
-            title={micState === 'listening' ? 'Stop' : 'Speak command'}
-          >
-            <Mic className="w-4 h-4" />
-          </button>
-        )}
+        {/* Mini Audio Frequency Waves */}
+        <div className="flex items-center gap-[2px] h-3 px-1">
+          {[4, 8, 12, 6, 10, 4].map((h, i) => (
+            <div
+              key={i}
+              className={`w-[2px] rounded-xs transition-all ${
+                micState === 'listening' ? 'bg-green animate-hud-wave' : 'bg-green opacity-60'
+              }`}
+              style={{ height: `${h}px` }}
+            />
+          ))}
+        </div>
 
+        {/* Send Button */}
         <button
           onClick={handleSubmit}
           disabled={!input.trim()}
-          className="w-7 h-7 flex items-center justify-center text-ink-faint hover:text-ink disabled:opacity-25 transition-colors"
+          className="w-7 h-7 rounded-xs flex items-center justify-center border border-line hover:border-green text-ink-muted hover:text-green disabled:opacity-30 transition-colors shrink-0 cursor-pointer"
           aria-label="Send command"
         >
-          <Send className="w-3.5 h-3.5" />
+          <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

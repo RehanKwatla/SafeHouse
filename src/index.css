@@ -10,163 +10,249 @@
 
   html {
     color-scheme: dark;
+    background-color: #030607;
   }
 
   body {
     margin: 0;
-    background-color: theme('colors.base.DEFAULT');
-    color: theme('colors.ink.DEFAULT');
-    font-family: theme('fontFamily.sans');
+    background-color: #030607;
+    color: #DDE8E8;
+    font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: 'cv11', 'ss01';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
 
   ::selection {
-    background-color: rgba(168, 240, 77, 0.18);
-    color: #fff;
+    background-color: rgba(156, 255, 50, 0.25);
+    color: #9CFF32;
   }
 }
 
 @layer components {
-  /* Technical panel — sharp corners, engineered feel */
-  .panel {
-    background-color: theme('colors.base.surface');
-    border: 1px solid theme('colors.line.DEFAULT');
-    border-radius: 0;
+  /* Outer Technical Chassis Enclosure Frame */
+  .hud-outer-chassis {
+    position: relative;
+    border: 1px solid #164A52;
+    background-color: #030607;
+    box-shadow: 0 0 20px rgba(22, 74, 82, 0.25), inset 0 0 16px rgba(18, 59, 66, 0.12);
   }
 
-  /* Slightly elevated surface */
-  .panel-elevated {
-    background-color: theme('colors.base.elevated');
-    border: 1px solid theme('colors.line.DEFAULT');
-    border-radius: 0;
+  /* Corner Brackets for Chassis & Panels */
+  .hud-bracket-tl {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid #35D9E8;
+    border-left: 2px solid #35D9E8;
+    pointer-events: none;
+    z-index: 10;
   }
 
-  /* Panel with clipped corner — mission control accent */
-  .panel-clipped {
-    background-color: theme('colors.base.surface');
-    border: 1px solid theme('colors.line.DEFAULT');
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  .hud-bracket-tr {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid #35D9E8;
+    border-right: 2px solid #35D9E8;
+    pointer-events: none;
+    z-index: 10;
   }
 
-  /* Panel header bar */
-  .panel-header {
+  .hud-bracket-bl {
+    position: absolute;
+    bottom: -1px;
+    left: -1px;
+    width: 10px;
+    height: 10px;
+    border-bottom: 2px solid #35D9E8;
+    border-left: 2px solid #35D9E8;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .hud-bracket-br {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-bottom: 2px solid #35D9E8;
+    border-right: 2px solid #35D9E8;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Mission Control HUD panel — blueprint container */
+  .hud-panel {
+    background-color: #070E10;
+    border: 1px solid #142A2E;
+    position: relative;
+    border-radius: 2px;
+  }
+
+  .hud-panel-elevated {
+    background-color: #0C1719;
+    border: 1px solid #183438;
+    position: relative;
+    border-radius: 2px;
+  }
+
+  .hud-panel-inset {
+    background-color: #040809;
+    border: 1px solid #122428;
+    border-radius: 2px;
+  }
+
+  /* HUD Active Glow borders */
+  .hud-glow-green {
+    border: 1px solid #9CFF32;
+    box-shadow: 0 0 14px rgba(156, 255, 50, 0.18), inset 0 0 10px rgba(156, 255, 50, 0.06);
+  }
+
+  .hud-glow-amber {
+    border: 1px solid #F2B84B;
+    box-shadow: 0 0 14px rgba(242, 184, 75, 0.18), inset 0 0 10px rgba(242, 184, 75, 0.06);
+  }
+
+  .hud-glow-red {
+    border: 1px solid #FF3B30;
+    box-shadow: 0 0 14px rgba(255, 59, 48, 0.22), inset 0 0 10px rgba(255, 59, 48, 0.06);
+  }
+
+  .hud-glow-cyan {
+    border: 1px solid #35D9E8;
+    box-shadow: 0 0 14px rgba(53, 217, 232, 0.18), inset 0 0 10px rgba(53, 217, 232, 0.06);
+  }
+
+  /* Technical Section Header */
+  .hud-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.875rem;
-    border-bottom: 1px solid theme('colors.line.DEFAULT');
+    padding: 0.45rem 0.75rem;
+    background-color: #0A1417;
+    border-bottom: 1px solid #142A2E;
   }
 
-  /* Section label — monospaced, upper, muted */
-  .label-text {
-    font-family: theme('fontFamily.mono');
-    font-size: 0.6rem;
+  .hud-section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #9CFF32;
+  }
+
+  .hud-label-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: theme('colors.ink.faint');
-  }
-
-  /* Section title — slightly larger label */
-  .section-title {
-    font-family: theme('fontFamily.mono');
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: theme('colors.ink.muted');
+    color: #718385;
   }
 
   .mono {
-    font-family: theme('fontFamily.mono');
+    font-family: 'JetBrains Mono', monospace;
   }
 
-  /* Navigation item */
-  .nav-item {
+  /* Navigation Item */
+  .hud-nav-item {
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.55rem 0.75rem;
     font-size: 0.75rem;
-    font-weight: 500;
-    color: theme('colors.ink.muted');
-    border-left: 2px solid transparent;
-    transition: all 0.12s ease;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: #718385;
+    background-color: #070E10;
+    border: 1px solid #142A2E;
+    border-radius: 2px;
+    transition: all 0.15s ease;
     cursor: pointer;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
   }
 
-  .nav-item:hover {
-    color: theme('colors.ink.DEFAULT');
-    background-color: theme('colors.base.hover');
-    border-left-color: theme('colors.line.strong');
+  .hud-nav-item:hover {
+    color: #DDE8E8;
+    background-color: #0E1C1F;
+    border-color: #1F4046;
   }
 
-  .nav-item.active {
-    color: theme('colors.green.DEFAULT');
-    background-color: theme('colors.green.tint');
-    border-left-color: theme('colors.green.DEFAULT');
+  .hud-nav-item.active {
+    color: #9CFF32;
+    background-color: rgba(156, 255, 50, 0.08);
+    border-color: #9CFF32;
+    box-shadow: 0 0 12px rgba(156, 255, 50, 0.15);
   }
 
-  /* Technical button — square, not pill */
-  .btn-tech {
+  /* Technical Buttons */
+  .btn-hud {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.375rem;
-    padding: 0.375rem 0.875rem;
-    font-family: theme('fontFamily.mono');
+    padding: 0.375rem 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 0.6875rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    border: 1px solid;
+    border-radius: 2px;
     transition: all 0.12s ease;
     cursor: pointer;
   }
 
-  .btn-green {
-    color: theme('colors.green.DEFAULT');
-    border-color: rgba(168, 240, 77, 0.3);
-    background-color: theme('colors.green.tint');
+  .btn-hud-green {
+    color: #9CFF32;
+    background-color: rgba(156, 255, 50, 0.08);
+    border: 1px solid rgba(156, 255, 50, 0.35);
   }
-  .btn-green:hover {
-    background-color: rgba(168, 240, 77, 0.12);
-    border-color: rgba(168, 240, 77, 0.5);
-  }
-
-  .btn-amber {
-    color: theme('colors.amber.DEFAULT');
-    border-color: rgba(242, 184, 75, 0.3);
-    background-color: theme('colors.amber.tint');
-  }
-  .btn-amber:hover {
-    background-color: rgba(242, 184, 75, 0.12);
+  .btn-hud-green:hover {
+    background-color: rgba(156, 255, 50, 0.18);
+    border-color: #9CFF32;
+    box-shadow: 0 0 10px rgba(156, 255, 50, 0.25);
   }
 
-  .btn-red {
-    color: theme('colors.red.DEFAULT');
-    border-color: rgba(255, 77, 77, 0.3);
-    background-color: theme('colors.red.tint');
+  .btn-hud-cyan {
+    color: #35D9E8;
+    background-color: rgba(53, 217, 232, 0.08);
+    border: 1px solid rgba(53, 217, 232, 0.35);
   }
-  .btn-red:hover {
-    background-color: rgba(255, 77, 77, 0.12);
-  }
-
-  /* Technical progress bar — block segments */
-  .progress-bar {
-    height: 6px;
-    background-color: theme('colors.base.elevated');
-    overflow: hidden;
+  .btn-hud-cyan:hover {
+    background-color: rgba(53, 217, 232, 0.18);
+    border-color: #35D9E8;
+    box-shadow: 0 0 10px rgba(53, 217, 232, 0.25);
   }
 
-  .progress-fill {
-    height: 100%;
-    transition: width 0.5s ease;
+  .btn-hud-amber {
+    color: #F2B84B;
+    background-color: rgba(242, 184, 75, 0.08);
+    border: 1px solid rgba(242, 184, 75, 0.35);
+  }
+  .btn-hud-amber:hover {
+    background-color: rgba(242, 184, 75, 0.18);
+    border-color: #F2B84B;
   }
 
-  /* Status dot indicator */
+  .btn-hud-red {
+    color: #FF3B30;
+    background-color: rgba(255, 59, 48, 0.08);
+    border: 1px solid rgba(255, 59, 48, 0.35);
+  }
+  .btn-hud-red:hover {
+    background-color: rgba(255, 59, 48, 0.18);
+    border-color: #FF3B30;
+  }
+
+  /* Status Indicator dot */
   .status-dot {
     width: 6px;
     height: 6px;
@@ -174,12 +260,19 @@
     display: inline-block;
     flex-shrink: 0;
   }
+
+  /* Segmented meter blocks */
+  .hud-meter-block {
+    height: 6px;
+    width: 5px;
+    border-radius: 1px;
+  }
 }
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.line.strong') transparent;
+    scrollbar-color: #1F4046 transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -192,68 +285,67 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: theme('colors.line.strong');
-  }
-
-  .text-balance {
-    text-wrap: balance;
+    background-color: #1F4046;
   }
 }
 
-/* Telemetry stream animation on borders — used sparingly */
-@keyframes borderDataScroll {
-  0%   { transform: translateY(0); }
+/* Hexadecimal Data Stream Vertical Bars (on Left & Right edges) */
+@keyframes matrixStreamVertical {
+  0% { transform: translateY(0); }
   100% { transform: translateY(-50%); }
 }
 
-.border-data-stream {
-  position: absolute;
+.hud-data-stream {
+  position: fixed;
   top: 0;
-  right: -20px;
-  width: 16px;
+  bottom: 0;
+  width: 22px;
   overflow: hidden;
-  height: 100%;
   pointer-events: none;
-  opacity: 0.2;
-}
-
-.border-data-inner {
+  z-index: 50;
   display: flex;
   flex-direction: column;
-  animation: borderDataScroll 10s linear infinite;
+  justify-content: flex-start;
+  opacity: 0.45;
+}
+
+.hud-data-stream-left {
+  left: 3px;
+}
+
+.hud-data-stream-right {
+  right: 3px;
+}
+
+.hud-data-stream-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: matrixStreamVertical 14s linear infinite;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
-  color: #A8F04D;
-  line-height: 1.4;
-  white-space: nowrap;
+  font-size: 8.5px;
+  font-weight: bold;
+  line-height: 1.45;
+  color: #9CFF32;
+  user-select: none;
 }
 
-/* Map interaction cursor */
-.facility-map {
-  cursor: grab;
-}
-.facility-map:active {
-  cursor: grabbing;
+/* Heartbeat pulse animation */
+@keyframes hudHeartbeatWave {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+  50% { transform: scaleY(1.4); opacity: 1; }
 }
 
-/* Smooth transitions for sensor values */
-.sensor-value {
-  transition: opacity 0.3s ease;
+.animate-hud-wave {
+  animation: hudHeartbeatWave 1.2s ease-in-out infinite;
 }
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  .animate-pulse-green,
-  .animate-pulse-red,
-  .animate-pulse-amber,
-  .animate-heartbeat,
-  .animate-waveform,
-  .animate-telemetry-flow {
+  .hud-data-stream-inner {
     animation: none !important;
   }
-
-  .facility-map svg line,
-  .facility-map svg ellipse {
+  .animate-hud-wave {
     animation: none !important;
   }
 }

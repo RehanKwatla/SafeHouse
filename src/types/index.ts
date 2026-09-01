@@ -53,7 +53,11 @@ export interface RobotStatusData {
     temperature: boolean;
     humidity: boolean;
     sound: boolean;
+    ultrasonic: boolean;
   };
+  obstacleDistance: number;
+  obstacleDetected: boolean;
+  speed: number;
 }
 
 export interface Alert {

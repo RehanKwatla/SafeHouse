@@ -79,7 +79,10 @@ export class SimulationEngine {
       targetRoom: 3,
       position: center,
       etaSeconds: 12,
-      sensors: { temperature: true, humidity: true, sound: true },
+      sensors: { temperature: true, humidity: true, sound: true, ultrasonic: true },
+      obstacleDistance: 2.4,
+      obstacleDetected: false,
+      speed: 0.24,
     };
 
     this.patrol = {
@@ -229,6 +232,9 @@ export class SimulationEngine {
         const c = roomCenter(this.robot.currentRoom);
         this.robot.position = c;
       }
+      this.robot.speed = 0;
+      this.robot.obstacleDistance = clamp(2.2 + (Math.random() - 0.5) * 0.4, 1.8, 3.0);
+      this.robot.obstacleDetected = false;
       return;
     }
 
@@ -243,12 +249,19 @@ export class SimulationEngine {
       y: from.y + (to.y - from.y) * eased,
     };
     this.robot.etaSeconds = Math.max(0, Math.ceil((1 - progress) * (MOVE_DURATION_MS / 1000)));
+    this.robot.speed = 0.24 + (Math.random() - 0.5) * 0.04;
+    
+    // Dynamic obstacle detection during movement
+    const dist = clamp(1.4 + Math.sin(progress * Math.PI) * 1.5 + (Math.random() - 0.5) * 0.3, 0.8, 2.8);
+    this.robot.obstacleDistance = dist;
+    this.robot.obstacleDetected = dist < 1.2;
 
     if (progress >= 1) {
       this.robot.currentRoom = this.moveToRoom;
       this.robot.targetRoom = null;
       this.robot.state = 'PATROLLING';
       this.robot.etaSeconds = 0;
+      this.robot.speed = 0;
       this.onArriveAtRoom(this.moveToRoom);
     }
   }

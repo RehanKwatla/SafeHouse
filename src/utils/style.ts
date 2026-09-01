@@ -26,9 +26,9 @@ export function safetyBg(state: SafetyState): string {
 
 export function safetyStroke(state: SafetyState): string {
   switch (state) {
-    case 'safe': return '#B8F34A';
-    case 'warning': return '#F5B942';
-    case 'critical': return '#FF4D4D';
+    case 'safe': return '#9CFF32';
+    case 'warning': return '#F2B84B';
+    case 'critical': return '#FF3B30';
   }
 }
 

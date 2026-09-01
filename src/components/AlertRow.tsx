@@ -1,5 +1,5 @@
 import type { Alert } from '@/types';
-import { formatTimeSec, formatRoom, alertStateColor } from '@/utils/style';
+import { formatTimeSec, formatRoom } from '@/utils/style';
 
 interface AlertRowProps {
   alert: Alert;
@@ -7,15 +7,9 @@ interface AlertRowProps {
   compact?: boolean;
 }
 
-const SEVERITY_LEFT: Record<string, string> = {
-  critical: '#FF4D4D',
-  warning:  '#F2B84B',
-  info:     '#263540',
-};
-
-export function AlertRow({ alert, onClick, compact }: AlertRowProps) {
+export function AlertRow({ alert, onClick }: AlertRowProps) {
+  const isCritical = alert.severity === 'critical';
   const isActive = alert.state === 'ACTIVE';
-  const isResolved = alert.state === 'RESOLVED';
 
   return (
     <div
@@ -23,52 +17,49 @@ export function AlertRow({ alert, onClick, compact }: AlertRowProps) {
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       className={`
-        flex items-center gap-0 border-b border-line-faint
-        ${isActive ? 'bg-base-elevated' : ''}
-        ${onClick ? 'cursor-pointer hover:bg-base-hover' : ''}
-        transition-colors animate-slide-in
+        hud-panel-inset px-3 py-2 flex items-center justify-between gap-2.5 cursor-pointer
+        border transition-all duration-150 text-2xs mono
+        ${
+          isCritical
+            ? 'border-red/40 bg-[#160809] hover:border-red hover:bg-red/10'
+            : 'border-amber/40 bg-[#161208] hover:border-amber hover:bg-amber/10'
+        }
       `}
-      style={{ borderLeft: `2px solid ${SEVERITY_LEFT[alert.severity]}` }}
     >
       {/* Time */}
-      <span className="text-3xs mono text-ink-faint tabular-nums px-3 py-2.5 shrink-0 w-[62px]">
+      <span className="text-ink-muted text-3xs tabular-nums shrink-0">
         {formatTimeSec(alert.timestamp)}
       </span>
 
-      {/* Room */}
-      <span className="text-2xs mono text-cyan tabular-nums px-2 py-2.5 shrink-0 w-[64px]">
+      {/* Bracket separator */}
+      <span className="text-ink-faint shrink-0">{'}'}</span>
+
+      {/* Room Badge */}
+      <span
+        className={`font-bold shrink-0 ${
+          isCritical ? 'text-red' : 'text-amber'
+        }`}
+      >
         {formatRoom(alert.room)}
       </span>
 
       {/* Description */}
-      <span className={`
-        flex-1 text-xs py-2.5 px-2 truncate
-        ${isActive
-          ? alert.severity === 'critical' ? 'text-red' : 'text-amber'
-          : isResolved ? 'text-ink-faint' : 'text-ink-muted'
-        }
-      `}>
-        {alert.description.toUpperCase()}
+      <span className="text-ink-muted flex-1 truncate uppercase font-semibold text-3xs">
+        {alert.description}
       </span>
 
       {/* State */}
-      {!compact && (
-        <span className={`
-          text-2xs mono font-semibold tracking-widest px-3 py-2.5 shrink-0
-          ${alertStateColor(alert.state)}
-        `}>
-          {alert.state}
-        </span>
-      )}
-
-      {compact && (
-        <span className={`
-          text-3xs mono px-3 py-2.5 shrink-0
-          ${isActive ? 'text-red' : 'text-ink-faint'}
-        `}>
-          {isActive ? 'ACTIVE' : 'RESOLVED'}
-        </span>
-      )}
+      <span
+        className={`font-black text-3xs shrink-0 tracking-widest ${
+          isActive
+            ? isCritical
+              ? 'text-red'
+              : 'text-amber'
+            : 'text-green'
+        }`}
+      >
+        {alert.state}
+      </span>
     </div>
   );
 }

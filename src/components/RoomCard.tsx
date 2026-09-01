@@ -1,5 +1,5 @@
 import type { Room } from '@/types';
-import { safetyColor, safetyBorder, safetyStroke } from '@/utils/style';
+import { Shield, AlertTriangle, AlertOctagon, Thermometer, Droplets, Activity } from 'lucide-react';
 
 interface RoomCardProps {
   room: Room;
@@ -7,59 +7,92 @@ interface RoomCardProps {
   onClick: () => void;
 }
 
-const SAFETY_SYMBOL = {
-  safe: '◆',
-  warning: '▲',
-  critical: '▲',
-} as const;
-
 export function RoomCard({ room, isSelected, onClick }: RoomCardProps) {
-  const color = safetyColor(room.safety);
-  const stroke = safetyStroke(room.safety);
-  const hasProblem = room.safety !== 'safe';
+  const isSafe = room.safety === 'safe';
+  const isWarning = room.safety === 'warning';
+  const isCritical = room.safety === 'critical';
 
   return (
     <div
       onClick={onClick}
-      className={`
-        border-l-2 ${safetyBorder(room.safety)}
-        px-3 py-2.5 cursor-pointer transition-colors duration-100
-        ${isSelected ? 'bg-base-hover' : 'bg-base-elevated hover:bg-base-hover'}
-      `}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onClick();
+      }}
+      className={`
+        hud-panel p-3 cursor-pointer transition-all duration-150 relative select-none
+        ${
+          isSelected
+            ? 'hud-glow-cyan border-cyan bg-[#09181C]'
+            : isCritical
+            ? 'hud-glow-red border-red bg-[#140A0B]'
+            : isWarning
+            ? 'hud-glow-amber border-amber bg-[#141008]'
+            : 'border-line hover:border-line-strong hover:bg-base-elevated'
+        }
+      `}
     >
-      {/* Room ID + State */}
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs mono font-bold text-ink tracking-widest">
+      {/* Top Row: Room Label & Corner Marker */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs mono font-black text-ink tracking-widest">
           ROOM {String(room.id).padStart(2, '0')}
         </span>
-        <div className={`flex items-center gap-1 ${color}`}>
-          <span className="text-3xs">{SAFETY_SYMBOL[room.safety]}</span>
-          <span className="text-2xs mono font-bold tracking-widest">
-            {room.safety === 'safe' ? 'SAFE' : room.safety === 'warning' ? 'ATTENTION' : 'ALERT'}
-          </span>
-        </div>
+        <span className="text-3xs mono text-ink-faint">⛶</span>
       </div>
 
-      {/* Room name */}
-      <p className="text-2xs text-ink-faint mb-1.5 tracking-wide">{room.name}</p>
+      {/* State Badge */}
+      <div className="flex items-center gap-2 mb-2.5">
+        {isSafe && (
+          <div className="flex items-center gap-1.5 text-green">
+            <Shield className="w-4 h-4 text-green" />
+            <span className="text-xs mono font-black tracking-widest">SAFE</span>
+          </div>
+        )}
+        {isWarning && (
+          <div className="flex items-center gap-1.5 text-amber">
+            <AlertTriangle className="w-4 h-4 text-amber" />
+            <span className="text-xs mono font-black tracking-widest">ATTENTION</span>
+          </div>
+        )}
+        {isCritical && (
+          <div className="flex items-center gap-1.5 text-red">
+            <AlertOctagon className="w-4 h-4 text-red animate-pulse" />
+            <span className="text-xs mono font-black tracking-widest">ALERT</span>
+          </div>
+        )}
+      </div>
 
-      {/* Sensor readings */}
-      <div className="flex items-center gap-3 text-2xs mono">
-        <span className="tabular-nums" style={{ color: hasProblem ? stroke : '#758287' }}>
-          {room.sensors.temperature.toFixed(1)}°C
-        </span>
-        <span className="tabular-nums" style={{ color: hasProblem ? stroke : '#3D4F55' }}>
-          {Math.round(room.sensors.humidity)}%
-        </span>
-        <span className={
-          room.sensors.soundLevel === 'NORMAL' ? 'text-ink-faint' :
-          room.sensors.soundLevel === 'LOUD' ? 'text-amber' : 'text-red'
-        }>
-          {Math.round(room.sensors.sound)}dB
-        </span>
+      {/* Bottom Row: Exact Telemetry Icons from Screenshot */}
+      <div className="flex items-center justify-between text-2xs mono pt-1.5 border-t border-line/60">
+        <div className="flex items-center gap-1">
+          <Thermometer className="w-3 h-3 opacity-60 text-ink-muted" />
+          <span className="tabular-nums font-semibold text-ink">
+            {room.sensors.temperature.toFixed(1)}°C
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Droplets className="w-3 h-3 opacity-60 text-cyan" />
+          <span className="tabular-nums font-semibold text-ink">
+            {Math.round(room.sensors.humidity)}%
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Activity className="w-3 h-3 opacity-60 text-ink-muted" />
+          <span
+            className={`font-bold tracking-wider text-3xs ${
+              room.sensors.soundLevel === 'NORMAL'
+                ? 'text-ink-muted'
+                : room.sensors.soundLevel === 'LOUD'
+                ? 'text-amber'
+                : 'text-red'
+            }`}
+          >
+            {room.sensors.soundLevel}
+          </span>
+        </div>
       </div>
     </div>
   );

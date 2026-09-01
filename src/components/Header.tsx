@@ -1,5 +1,6 @@
 import { useClock, useSimulation } from '@/hooks/useSimulation';
 import type { DataSource } from '@/types';
+import { Shield } from 'lucide-react';
 
 function formatClock(epoch: number): string {
   return new Date(epoch * 1000).toLocaleTimeString('en-GB', {
@@ -11,46 +12,44 @@ function formatClock(epoch: number): string {
 
 function formatDate(epoch: number): string {
   return new Date(epoch * 1000)
-    .toLocaleDateString('en-GB', {
-      day: '2-digit',
+    .toLocaleDateString('en-US', {
       month: 'short',
+      day: 'numeric',
       year: 'numeric',
     })
     .toUpperCase();
 }
 
-// SafeRoom logo mark
-function SafeRoomMark() {
+// ECG / Heartbeat waveform from the reference screenshot
+function HeartbeatWaveform() {
   return (
-    <svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <polygon
-        points="14,2 24,7.5 24,20.5 14,26 4,20.5 4,7.5"
-        stroke="#A8F04D"
-        strokeWidth="1.5"
+    <svg width="64" height="18" viewBox="0 0 64 18" fill="none" className="opacity-90">
+      <path
+        d="M0,9 L14,9 L18,3 L22,15 L26,7 L30,11 L34,9 L64,9"
+        stroke="#9CFF32"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         fill="none"
-        opacity="0.6"
       />
-      <line x1="14" y1="8" x2="14" y2="20" stroke="#A8F04D" strokeWidth="1.5" />
-      <line x1="8" y1="14" x2="20" y2="14" stroke="#A8F04D" strokeWidth="1.5" />
-      <circle cx="14" cy="14" r="2.5" fill="#A8F04D" />
     </svg>
   );
 }
 
-// System heartbeat waveform — communicates liveness, not decoration
-function SystemHeartbeat() {
-  const bars = [2, 3, 2, 5, 8, 12, 8, 5, 3, 2, 2, 3, 2];
+// Vertical Link Strength Signal Bars
+function SignalStrengthBars({ percent }: { percent: number }) {
+  const bars = [4, 7, 10, 13, 16];
+  const filledCount = Math.ceil((percent / 100) * 5);
+
   return (
-    <div className="flex items-center gap-px h-4" aria-hidden="true">
+    <div className="flex items-end gap-1 h-4">
       {bars.map((h, i) => (
         <div
           key={i}
-          className="w-px bg-green animate-heartbeat"
-          style={{
-            height: `${h}px`,
-            animationDelay: `${i * 0.1}s`,
-            opacity: 0.7,
-          }}
+          className={`w-1 rounded-xs transition-colors ${
+            i < filledCount ? 'bg-green' : 'bg-line-strong opacity-40'
+          }`}
+          style={{ height: `${h}px` }}
         />
       ))}
     </div>
@@ -63,103 +62,89 @@ interface HeaderProps {
   onAlertClick: () => void;
 }
 
-export function Header({ dataSource, alertCount, onAlertClick }: HeaderProps) {
+export function Header({ alertCount, onAlertClick }: HeaderProps) {
   const sim = useSimulation();
   const clock = useClock();
   const robot = sim.getRobot();
 
   return (
-    <header className="flex items-stretch h-[52px] bg-base-surface border-b border-line shrink-0 z-20 relative">
-      {/* Left: branding */}
-      <div className="flex items-center gap-2.5 px-4 border-r border-line min-w-[200px]">
-        <SafeRoomMark />
+    <header className="flex items-center justify-between h-[64px] bg-base-surface border-b border-line px-3 lg:px-4 shrink-0 z-30 relative select-none">
+      {/* 1. Left Branding */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 flex items-center justify-center border border-green/40 bg-green/10 rounded-sm">
+          <Shield className="w-5 h-5 text-green" />
+        </div>
         <div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-bold tracking-[0.2em] text-green mono">SAFEROOM</span>
+          <div className="flex items-center gap-2">
+            <span className="text-base lg:text-lg font-black tracking-[0.22em] text-green mono leading-none">
+              SAFEROOM
+            </span>
           </div>
-          <p className="text-3xs text-ink-faint tracking-[0.12em] mono mt-0.5">
-            AUTONOMOUS SAFETY PATROL
+          <p className="text-3xs text-ink-muted tracking-[0.14em] mono mt-1">
+            AUTONOMOUS SAFETY PATROL SYSTEM
           </p>
         </div>
       </div>
 
-      {/* Center: system status */}
-      <div className="flex-1 flex items-center justify-center gap-6 px-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex flex-col items-start">
-            <span className="text-3xs label-text">SYSTEM</span>
+      {/* 2. Center Inset Status Modules */}
+      <div className="hidden md:flex items-center gap-2.5">
+        {/* Module A: System Status */}
+        <div className="hud-panel-inset px-3.5 py-1.5 flex items-center gap-3 border border-line">
+          <div className="flex flex-col">
+            <span className="hud-label-text">SYSTEM STATUS</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="status-dot bg-green animate-pulse-green" />
-              <span className="text-2xs mono font-semibold text-green tracking-widest">ONLINE</span>
+              <span className="text-2xs mono font-bold text-green tracking-widest">ONLINE</span>
             </div>
           </div>
+          <HeartbeatWaveform />
         </div>
 
-        <div className="hidden md:flex items-center gap-2">
-          <SystemHeartbeat />
-        </div>
-
-        <div className="hidden sm:flex flex-col items-start">
-          <span className="text-3xs label-text">LINK</span>
-          <span
-            className={`text-2xs mono font-semibold mt-0.5 tabular-nums ${
-              robot.connection >= 90
-                ? 'text-green'
-                : robot.connection >= 70
-                ? 'text-amber'
-                : 'text-red'
-            }`}
-          >
-            {Math.round(robot.connection)}%
-          </span>
-        </div>
-
-        <div className="hidden sm:flex flex-col items-start">
-          <span className="text-3xs label-text">SOURCE</span>
-          <span
-            className={`text-2xs mono font-semibold mt-0.5 ${
-              dataSource === 'LIVE' ? 'text-green' : 'text-amber'
-            }`}
-          >
-            {dataSource === 'LIVE' ? 'ESP32 LIVE' : 'SIMULATION'}
-          </span>
+        {/* Module B: Link Strength */}
+        <div className="hud-panel-inset px-3.5 py-1.5 flex items-center gap-3 border border-line">
+          <div className="flex flex-col">
+            <span className="hud-label-text">LINK STRENGTH</span>
+            <span className="text-xs mono font-bold text-ink tracking-wider mt-0.5 tabular-nums">
+              {Math.round(robot.connection)}%
+            </span>
+          </div>
+          <SignalStrengthBars percent={robot.connection} />
         </div>
       </div>
 
-      {/* Right: clock + alerts */}
-      <div className="flex items-stretch border-l border-line">
-        <div className="flex flex-col items-center justify-center px-4 border-r border-line">
-          <span className="text-sm mono font-bold text-ink tabular-nums tracking-wider">
+      {/* 3. Right Status: Clock & Active Alerts */}
+      <div className="flex items-center gap-2.5">
+        {/* Time & Date */}
+        <div className="hud-panel-inset px-3.5 py-1.5 flex flex-col items-center justify-center border border-line min-w-[110px]">
+          <span className="text-sm mono font-bold text-ink tracking-wider leading-none tabular-nums">
             {formatClock(clock)}
           </span>
-          <span className="text-3xs mono text-ink-faint tracking-widest mt-0.5">
+          <span className="text-3xs mono text-ink-muted tracking-widest mt-1">
             {formatDate(clock)}
           </span>
         </div>
 
+        {/* Active Alerts Box */}
         <button
           onClick={onAlertClick}
-          className={`flex flex-col items-center justify-center px-4 transition-colors ${
+          className={`hud-panel px-3.5 py-1.5 flex items-center gap-3 cursor-pointer transition-all ${
             alertCount > 0
-              ? 'bg-red-tint hover:bg-red/10 cursor-pointer'
-              : 'hover:bg-base-hover cursor-pointer'
+              ? 'border-red bg-red/10 hud-glow-red hover:bg-red/15'
+              : 'border-line hover:border-line-strong'
           }`}
           aria-label={`${alertCount} active alerts`}
         >
-          <span
-            className={`text-lg mono font-bold tabular-nums ${
-              alertCount > 0 ? 'text-red' : 'text-ink-faint'
-            }`}
-          >
+          <span className={`text-2xl mono font-black leading-none tabular-nums ${alertCount > 0 ? 'text-red' : 'text-ink-faint'}`}>
             {alertCount}
           </span>
-          <span
-            className={`text-3xs mono tracking-widest ${
-              alertCount > 0 ? 'text-red' : 'text-ink-faint'
-            }`}
-          >
-            ALERTS
-          </span>
+          <div className="flex flex-col items-start leading-tight">
+            <span className={`text-3xs mono font-bold tracking-widest ${alertCount > 0 ? 'text-red' : 'text-ink-faint'}`}>
+              ACTIVE
+            </span>
+            <span className={`text-3xs mono font-bold tracking-widest ${alertCount > 0 ? 'text-red' : 'text-ink-faint'}`}>
+              ALERTS
+            </span>
+          </div>
         </button>
       </div>
     </header>
