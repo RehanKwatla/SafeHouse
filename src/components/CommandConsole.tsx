@@ -1,22 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Mic, Volume2, VolumeX, Terminal } from 'lucide-react';
+import { Send, Mic, Volume2, VolumeX } from 'lucide-react';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useSpeechRecognition, useSpeechSynthesis, type MicState } from '@/hooks/useSpeech';
 import { parseCommand } from '@/engine/commandParser';
-import { deviceApi, sensorApi } from '@/api';
+import { deviceApi } from '@/api';
 import type { ConsoleMessage, ParsedCommand } from '@/types';
-import { AlertRow } from './AlertRow';
 
 interface CommandConsoleProps {
   onSelectAlert?: (alertId: string) => void;
 }
 
-const MIC_STATE_STYLES: Record<MicState, { color: string; label: string; pulse?: boolean }> = {
-  idle: { color: 'text-ink-muted border-line hover:border-green/40 hover:text-green', label: 'TAP TO SPEAK' },
-  listening: { color: 'text-green border-green/50 bg-green-tint', label: 'LISTENING...', pulse: true },
-  processing: { color: 'text-amber border-amber/50 bg-amber-tint', label: 'PROCESSING...' },
-  error: { color: 'text-red border-red/50 bg-red-tint', label: 'ERROR' },
-  unsupported: { color: 'text-ink-faint border-line', label: 'NOT SUPPORTED' },
+const MIC_STATE_LABEL: Record<MicState, string> = {
+  idle: 'MIC',
+  listening: 'LISTENING',
+  processing: 'PROCESSING',
+  error: 'ERROR',
+  unsupported: 'NO MIC',
 };
 
 function generateResponse(
@@ -25,37 +24,37 @@ function generateResponse(
 ): { text: string; kind: ConsoleMessage['kind'] } {
   switch (command.action) {
     case 'check_room': {
-      if (!command.room) return { text: 'Which room should I check?', kind: 'info' };
+      if (!command.room) return { text: 'Specify a room number.', kind: 'info' };
       const sensors = sim.getRoomSensors(command.room);
       const temp = sensors.temperature.toFixed(1);
       const hum = Math.round(sensors.humidity);
       const sound = Math.round(sensors.sound);
       if (sensors.soundLevel !== 'NORMAL' || sensors.temperature < 18 || sensors.temperature > 30 || sensors.humidity > 75) {
         return {
-          text: `Room ${String(command.room).padStart(2, '0')} requires attention. Temperature ${temp}°C, humidity ${hum}%, sound ${sound} dB.`,
+          text: `Room ${String(command.room).padStart(2, '0')}: ${temp}°C, ${hum}% humidity, ${sound} dB — attention needed.`,
           kind: 'warning',
         };
       }
       return {
-        text: `Room ${String(command.room).padStart(2, '0')} is within safe limits. Temperature ${temp}°C, humidity ${hum}%, sound ${sound} dB.`,
+        text: `Room ${String(command.room).padStart(2, '0')}: ${temp}°C, ${hum}% humidity, ${sound} dB — all clear.`,
         kind: 'success',
       };
     }
     case 'go_to_room': {
-      if (!command.room) return { text: 'Specify a room to navigate to.', kind: 'info' };
+      if (!command.room) return { text: 'Specify a room number.', kind: 'info' };
       deviceApi.sendCommand(command);
       return {
-        text: `Navigating to Room ${String(command.room).padStart(2, '0')}. Estimated travel time 6 seconds.`,
+        text: `Navigating to Room ${String(command.room).padStart(2, '0')}.`,
         kind: 'info',
       };
     }
     case 'patrol': {
       deviceApi.sendCommand(command);
-      return { text: 'Patrol initiated. Monitoring all rooms.', kind: 'success' };
+      return { text: 'Patrol started. Monitoring all rooms.', kind: 'success' };
     }
     case 'stop': {
       deviceApi.sendCommand(command);
-      return { text: 'Rover stopped. All movement halted.', kind: 'warning' };
+      return { text: 'Rover stopped.', kind: 'warning' };
     }
     case 'move': {
       return { text: `Moving ${command.direction}.`, kind: 'info' };
@@ -64,7 +63,7 @@ function generateResponse(
       const robot = sim.getRobot();
       const room = String(robot.currentRoom).padStart(2, '0');
       return {
-        text: `Rover is ${robot.state === 'PATROLLING' ? 'patrolling' : robot.state.toLowerCase()} at Room ${room}. Battery ${Math.round(robot.battery)}%, connection ${Math.round(robot.connection)}%.`,
+        text: `${robot.state} at Room ${room}. Battery ${Math.round(robot.battery)}%, signal ${Math.round(robot.connection)}%.`,
         kind: 'info',
       };
     }
@@ -72,41 +71,53 @@ function generateResponse(
       const rooms = sim.getRooms();
       const issues = rooms.filter((r) => r.safety !== 'safe');
       if (issues.length === 0) {
-        return { text: 'All rooms are within safe limits. No active alerts.', kind: 'success' };
+        return { text: 'All rooms clear. No active alerts.', kind: 'success' };
       }
-      const issueList = issues.map((r) => `Room ${String(r.id).padStart(2, '0')} (${r.safety})`).join(', ');
-      return { text: `${issues.length} room(s) require attention: ${issueList}.`, kind: 'warning' };
+      const issueList = issues
+        .map((r) => `Room ${String(r.id).padStart(2, '0')} (${r.safety})`)
+        .join(', ');
+      return { text: `${issues.length} room(s) need attention: ${issueList}.`, kind: 'warning' };
     }
     default:
-      return { text: 'Command not recognized. Try: check room 3, go to room 4, patrol, stop, status, report.', kind: 'warning' };
+      return {
+        text: 'Unknown command. Try: patrol, stop, status, report, check room 2, go to room 3.',
+        kind: 'warning',
+      };
   }
 }
 
-export function CommandConsole({ onSelectAlert }: CommandConsoleProps) {
+// Hint suggestions shown below the input — operational not conversational
+const HINTS = ['patrol', 'stop', 'status', 'check room 2', 'go to room 3', 'report'];
+
+export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsoleProps) {
   const sim = useSimulation();
   const [messages, setMessages] = useState<ConsoleMessage[]>([
     {
       id: 'sys-init',
       source: 'SYS',
-      text: 'SAFEROOM command console ready. Awaiting instruction.',
+      text: 'Console ready.',
       timestamp: Date.now(),
       kind: 'info',
     },
   ]);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { enabled: voiceEnabled, speak, toggle: toggleVoice } = useSpeechSynthesis();
 
   const executeCommand = useCallback(
     (raw: string) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+
       const userMsg: ConsoleMessage = {
         id: `you-${Date.now()}`,
         source: 'YOU',
-        text: `"${raw}"`,
+        text: trimmed,
         timestamp: Date.now(),
       };
 
-      const command = parseCommand(raw);
+      const command = parseCommand(trimmed);
       const response = generateResponse(command, sim);
       const sysMsg: ConsoleMessage = {
         id: `sys-${Date.now()}`,
@@ -118,9 +129,7 @@ export function CommandConsole({ onSelectAlert }: CommandConsoleProps) {
 
       setMessages((prev) => [...prev, userMsg, sysMsg]);
 
-      if (voiceEnabled) {
-        speak(response.text);
-      }
+      if (voiceEnabled) speak(response.text);
     },
     [sim, voiceEnabled, speak]
   );
@@ -139,138 +148,127 @@ export function CommandConsole({ onSelectAlert }: CommandConsoleProps) {
     setInput('');
   };
 
-  const handleMicClick = () => {
-    if (micState === 'listening') {
-      stop();
-    } else {
-      start();
-    }
+  const handleHint = (hint: string) => {
+    executeCommand(hint);
+    inputRef.current?.focus();
   };
 
-  const micStyle = MIC_STATE_STYLES[micState];
+  const handleMicClick = () => {
+    if (micState === 'listening') stop();
+    else start();
+  };
 
   return (
     <div className="panel flex flex-col h-full">
-      {/* Header */}
+      {/* Header — control console framing, not chat assistant framing */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-line">
         <div className="flex items-center gap-2">
-          <Terminal className="w-3.5 h-3.5 text-green" />
-          <span className="label-text">SAFEROOM COMMAND CONSOLE</span>
+          {/* Prompt character communicates: this is a command interface */}
+          <span className="text-green mono text-sm font-medium">{'>'}</span>
+          <span className="label-text">COMMAND</span>
         </div>
-        {/* Voice response toggle */}
         <button
           onClick={toggleVoice}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded border text-2xs mono tracking-wider transition-colors ${
-            voiceEnabled
-              ? 'border-green/30 bg-green-tint text-green'
-              : 'border-line text-ink-muted hover:text-ink'
-          }`}
+          className="flex items-center gap-1 text-2xs mono text-ink-faint hover:text-ink-muted transition-colors"
+          title={voiceEnabled ? 'Voice response on' : 'Voice response off'}
         >
           {voiceEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
-          VOICE {voiceEnabled ? 'ON' : 'OFF'}
+          <span className="hidden sm:inline">{voiceEnabled ? 'VOICE ON' : 'VOICE OFF'}</span>
         </button>
       </div>
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-3 space-y-2 min-h-[180px]" style={{ maxHeight: 300 }}>
-        {messages.map((msg) => (
-          <div key={msg.id} className="animate-slide-in">
-            <div className="flex items-baseline gap-2">
-              <span
-                className={`text-2xs mono font-semibold tracking-wider shrink-0 ${
-                  msg.source === 'YOU'
-                    ? 'text-ink'
-                    : msg.source === 'ERR'
-                    ? 'text-red'
-                    : msg.kind === 'success'
-                    ? 'text-green'
-                    : msg.kind === 'warning'
-                    ? 'text-amber'
-                    : msg.kind === 'critical'
-                    ? 'text-red'
-                    : 'text-ink-muted'
-                }`}
-              >
-                {msg.source}
-              </span>
-              <span className="text-2xs mono text-ink-faint tabular-nums">
-                {new Date(msg.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </span>
+      {/* Message stream */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto scrollbar-thin px-4 py-2 space-y-0 font-mono text-xs"
+        style={{ minHeight: 140, maxHeight: 260 }}
+      >
+        {messages.map((msg) => {
+          const isUser = msg.source === 'YOU';
+          return (
+            <div key={msg.id} className="py-0.5 leading-relaxed">
+              {isUser ? (
+                // User input: prompt character prefix
+                <span className="text-ink">
+                  <span className="text-ink-faint mr-1.5">{'>'}</span>
+                  {msg.text}
+                </span>
+              ) : (
+                // System response: colored by kind
+                <span
+                  className={
+                    msg.kind === 'success'
+                      ? 'text-green'
+                      : msg.kind === 'warning'
+                      ? 'text-amber'
+                      : msg.kind === 'critical'
+                      ? 'text-red'
+                      : 'text-ink-muted'
+                  }
+                >
+                  {msg.text}
+                </span>
+              )}
             </div>
-            <p
-              className={`text-xs mt-0.5 ml-8 ${
-                msg.kind === 'success'
-                  ? 'text-green'
-                  : msg.kind === 'warning'
-                  ? 'text-amber'
-                  : msg.kind === 'critical'
-                  ? 'text-red'
-                  : msg.source === 'YOU'
-                  ? 'text-ink'
-                  : 'text-ink-muted'
-              }`}
-            >
-              {msg.text}
-            </p>
-          </div>
+          );
+        })}
+      </div>
+
+      {/* Quick-command hints — show operational vocabulary, not generic suggestions */}
+      <div className="px-4 pb-2 flex items-center gap-1.5 flex-wrap border-t border-line-faint pt-2">
+        {HINTS.map((hint) => (
+          <button
+            key={hint}
+            onClick={() => handleHint(hint)}
+            className="px-2 py-0.5 text-2xs mono text-ink-faint border border-line hover:border-line-strong hover:text-ink-muted transition-colors"
+            style={{ borderRadius: 2 }}
+          >
+            {hint}
+          </button>
         ))}
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-line p-3">
-        {/* Mic status */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleMicClick}
-              disabled={!isSupported && micState === 'unsupported'}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-2xs mono tracking-wider transition-all ${micStyle.color} ${
-                micStyle.pulse ? 'animate-pulse-green' : ''
-              }`}
-            >
-              <Mic className="w-3 h-3" />
-              {micStyle.label}
-            </button>
-            {!isSupported && (
-              <span className="text-2xs text-ink-faint">Voice not supported — use text input</span>
-            )}
-          </div>
-        </div>
-
-        {/* Text input */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            placeholder="Type a command..."
-            className="flex-1 bg-base border border-line rounded px-3 py-2 text-xs mono text-ink placeholder:text-ink-faint focus:outline-none focus:border-green/40 transition-colors"
-          />
+      {/* Input row */}
+      <div className="border-t border-line px-3 py-2.5 flex items-center gap-2">
+        {/* Prompt prefix inside input area */}
+        <span className="text-green mono text-sm shrink-0">{'>'}</span>
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          placeholder="enter command..."
+          className="flex-1 bg-transparent text-xs mono text-ink placeholder:text-ink-faint focus:outline-none"
+        />
+        {/* Mic button */}
+        {isSupported && (
           <button
-            onClick={handleSubmit}
-            className="flex items-center justify-center w-9 h-9 bg-green/10 border border-green/30 rounded text-green hover:bg-green/20 transition-colors shrink-0"
+            onClick={handleMicClick}
+            className={`flex items-center justify-center w-7 h-7 transition-colors ${
+              micState === 'listening'
+                ? 'text-green animate-pulse-green'
+                : micState === 'processing'
+                ? 'text-amber'
+                : micState === 'error'
+                ? 'text-red'
+                : 'text-ink-faint hover:text-ink-muted'
+            }`}
+            title={MIC_STATE_LABEL[micState]}
+            aria-label={MIC_STATE_LABEL[micState]}
           >
-            <Send className="w-4 h-4" />
+            <Mic className="w-3.5 h-3.5" />
           </button>
-        </div>
-
-        {/* Quick commands */}
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {['Check room 3', 'Patrol all rooms', 'Status', 'Report'].map((cmd) => (
-            <button
-              key={cmd}
-              onClick={() => executeCommand(cmd)}
-              className="text-2xs mono px-2 py-1 bg-base-hover border border-line-faint rounded text-ink-muted hover:text-green hover:border-green/30 transition-colors"
-            >
-              {cmd}
-            </button>
-          ))}
-        </div>
+        )}
+        <button
+          onClick={handleSubmit}
+          disabled={!input.trim()}
+          className="flex items-center justify-center w-7 h-7 text-ink-faint hover:text-ink disabled:opacity-30 transition-colors"
+          aria-label="Send command"
+        >
+          <Send className="w-3.5 h-3.5" />
+        </button>
       </div>
-
-      {/* onSelectAlert is passed through but alerts are shown in AlertPanel */}
-      {onSelectAlert ? null : null}
     </div>
   );
 }

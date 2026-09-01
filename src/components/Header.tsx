@@ -1,10 +1,14 @@
-import { Shield, Wifi, Bell } from 'lucide-react';
+import { Shield, Bell } from 'lucide-react';
 import { useClock } from '@/hooks/useSimulation';
 import { useSimulation } from '@/hooks/useSimulation';
 import type { DataSource } from '@/types';
 
 function formatClock(epoch: number): string {
-  return new Date(epoch * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(epoch * 1000).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }
 
 interface HeaderProps {
@@ -19,52 +23,57 @@ export function Header({ dataSource, alertCount, onAlertClick }: HeaderProps) {
   const robot = sim.getRobot();
 
   return (
-    <header className="flex items-center justify-between px-5 h-[72px] bg-base-surface border-b border-line shrink-0 z-20">
-      {/* Left: branding */}
+    <header className="flex items-center justify-between px-5 h-14 bg-base-surface border-b border-line shrink-0 z-20">
+      {/* Left: branding — compact, no over-decoration */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 bg-green-tint border border-green/30 rounded">
-          <Shield className="w-5 h-5 text-green" strokeWidth={2} />
-        </div>
-        <div>
-          <h1 className="text-base font-bold tracking-wider text-ink leading-none">SAFEROOM</h1>
-          <p className="text-2xs text-ink-muted tracking-widest mt-1 mono">AUTONOMOUS SAFETY PATROL SYSTEM</p>
+        <Shield className="w-4 h-4 text-green shrink-0" strokeWidth={2} />
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-semibold tracking-widest text-ink mono">SAFEROOM</span>
+          <span className="hidden sm:inline text-2xs text-ink-faint tracking-wider">
+            AUTONOMOUS SAFETY PATROL
+          </span>
         </div>
       </div>
 
-      {/* Right: status indicators */}
+      {/* Right: essential status only — no badge overload */}
       <div className="flex items-center gap-5">
-        {/* Data source badge */}
-        <div className={`flex items-center gap-1.5 px-2 py-1 rounded border text-2xs mono tracking-wider ${dataSource === 'LIVE' ? 'border-green/30 bg-green-tint text-green' : 'border-amber/30 bg-amber-tint text-amber'}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${dataSource === 'LIVE' ? 'bg-green' : 'bg-amber'}`} />
-          {dataSource === 'LIVE' ? 'LIVE ESP32' : 'SIMULATION MODE'}
+        {/* Data source — one indicator, not two */}
+        <div className="hidden sm:flex items-center gap-1.5">
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              dataSource === 'LIVE' ? 'bg-green animate-pulse-green' : 'bg-amber'
+            }`}
+          />
+          <span className="text-2xs mono text-ink-muted">
+            {dataSource === 'LIVE' ? 'LIVE' : 'SIM'}
+          </span>
         </div>
 
-        {/* System online */}
-        <div className="flex items-center gap-2">
-          <span className="relative flex w-2 h-2">
-            <span className="absolute inset-0 rounded-full bg-green animate-pulse-green" />
-            <span className="relative inline-flex w-2 h-2 rounded-full bg-green" />
+        {/* Connection quality — only shows when below 95% */}
+        {robot.connection < 95 && (
+          <span className="text-2xs mono text-amber tabular-nums">
+            {Math.round(robot.connection)}% LINK
           </span>
-          <span className="text-2xs mono tracking-wider text-green">SYSTEM ONLINE</span>
-        </div>
+        )}
 
         {/* Clock */}
-        <div className="text-sm mono font-medium text-ink tabular-nums">{formatClock(clock)}</div>
+        <span className="text-sm mono font-medium text-ink tabular-nums hidden md:inline">
+          {formatClock(clock)}
+        </span>
 
-        {/* Link quality */}
-        <div className="flex items-center gap-1.5">
-          <Wifi className="w-3.5 h-3.5 text-ink-muted" />
-          <span className="text-2xs mono text-ink-muted">{Math.round(robot.connection)}% LINK</span>
-        </div>
-
-        {/* Alert indicator */}
+        {/* Alert bell — the only prominent action in the header */}
         <button
           onClick={onAlertClick}
-          className="relative flex items-center justify-center w-8 h-8 rounded border border-line hover:border-line-strong hover:bg-base-hover transition-colors"
+          className="relative flex items-center justify-center w-8 h-8 hover:bg-base-hover transition-colors"
+          style={{ borderRadius: 2 }}
+          aria-label={alertCount > 0 ? `${alertCount} active alerts` : 'No active alerts'}
         >
-          <Bell className="w-4 h-4 text-ink-muted" />
+          <Bell
+            className={`w-4 h-4 ${alertCount > 0 ? 'text-red' : 'text-ink-muted'}`}
+            strokeWidth={alertCount > 0 ? 2 : 1.5}
+          />
           {alertCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red text-white text-2xs font-bold rounded">
+            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red text-white text-2xs font-bold mono">
               {alertCount}
             </span>
           )}

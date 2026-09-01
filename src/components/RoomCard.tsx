@@ -1,6 +1,5 @@
-import { AlertTriangle, ShieldCheck, AlertOctagon } from 'lucide-react';
 import type { Room } from '@/types';
-import { safetyBorder, safetyColor, formatRoom } from '@/utils/style';
+import { safetyColor, safetyBorder, formatRoom } from '@/utils/style';
 
 interface RoomCardProps {
   room: Room;
@@ -8,48 +7,82 @@ interface RoomCardProps {
   onClick: () => void;
 }
 
-const SAFETY_ICONS = {
-  safe: ShieldCheck,
-  warning: AlertTriangle,
-  critical: AlertOctagon,
-} as const;
+// Human-readable event descriptions instead of raw sensor dumps
+function describeSafetyEvent(room: Room): string | null {
+  const { sensors, safety } = room;
+  if (safety === 'safe') return null;
 
-const SAFETY_LABELS = {
-  safe: 'SAFE',
-  warning: 'ATTENTION',
-  critical: 'CRITICAL',
-} as const;
+  const issues: string[] = [];
+
+  if (sensors.temperature < 18) {
+    issues.push(`Too cold — ${sensors.temperature.toFixed(1)}°C`);
+  } else if (sensors.temperature > 30) {
+    issues.push(`Too hot — ${sensors.temperature.toFixed(1)}°C`);
+  }
+
+  if (sensors.humidity > 75) {
+    issues.push(`Humidity high — ${Math.round(sensors.humidity)}%`);
+  }
+
+  if (sensors.soundLevel === 'HIGH') {
+    issues.push(`Loud sound — ${Math.round(sensors.sound)} dB`);
+  } else if (sensors.soundLevel === 'LOUD') {
+    issues.push(`Elevated sound — ${Math.round(sensors.sound)} dB`);
+  }
+
+  return issues[0] ?? null;
+}
 
 export function RoomCard({ room, isSelected, onClick }: RoomCardProps) {
-  const Icon = SAFETY_ICONS[room.safety];
   const color = safetyColor(room.safety);
+  const event = describeSafetyEvent(room);
+  const hasProblem = room.safety !== 'safe';
 
   return (
     <div
       onClick={onClick}
-      className={`panel-elevated border-l-2 ${safetyBorder(room.safety)} px-3 py-2.5 cursor-pointer transition-all duration-150 ${
-        isSelected ? 'ring-1 ring-green/40 bg-base-hover' : 'hover:bg-base-hover'
-      }`}
+      className={`
+        relative border-l-2 ${safetyBorder(room.safety)}
+        px-3 py-2.5 cursor-pointer transition-colors duration-100
+        ${isSelected
+          ? 'bg-base-hover'
+          : hasProblem
+          ? 'bg-base-elevated hover:bg-base-hover'
+          : 'bg-base-elevated hover:bg-base-hover'
+        }
+      `}
     >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs mono font-semibold text-ink tracking-wider">{formatRoom(room.id)}</span>
-        <div className={`flex items-center gap-1 ${color}`}>
-          <Icon className="w-3 h-3" strokeWidth={2} />
-          <span className="text-2xs mono font-semibold tracking-wider">{SAFETY_LABELS[room.safety]}</span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4 text-2xs mono text-ink-muted">
-        <span className="text-ink">{room.sensors.temperature.toFixed(1)}°C</span>
-        <span>{Math.round(room.sensors.humidity)}% HUMIDITY</span>
-        <span className={room.sensors.soundLevel === 'NORMAL' ? '' : room.sensors.soundLevel === 'LOUD' ? 'text-amber' : 'text-red'}>
-          {room.sensors.soundLevel === 'NORMAL'
-            ? 'SOUND NORMAL'
-            : room.sensors.soundLevel === 'LOUD'
-            ? 'LOUD SOUND'
-            : 'HIGH SOUND'}
+      {/* Room ID + safety state on one line */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs mono font-semibold text-ink tracking-wider">
+          {formatRoom(room.id)}
+        </span>
+        <span className={`text-2xs mono font-semibold tracking-wider ${color}`}>
+          {room.safety === 'safe' ? 'SAFE' : room.safety === 'warning' ? 'WARNING' : 'CRITICAL'}
         </span>
       </div>
+
+      {/* Room name */}
+      <p className="text-2xs text-ink-faint mb-1.5">{room.name}</p>
+
+      {/* Show event description OR compact sensor row depending on state */}
+      {hasProblem && event ? (
+        <p className={`text-xs font-medium ${color}`}>{event}</p>
+      ) : (
+        <div className="flex items-center gap-3 text-2xs mono text-ink-faint">
+          <span className="text-ink-muted tabular-nums">{room.sensors.temperature.toFixed(1)}°C</span>
+          <span className="tabular-nums">{Math.round(room.sensors.humidity)}%</span>
+          <span className={
+            room.sensors.soundLevel === 'NORMAL'
+              ? ''
+              : room.sensors.soundLevel === 'LOUD'
+              ? 'text-amber'
+              : 'text-red'
+          }>
+            {room.sensors.soundLevel === 'NORMAL' ? 'quiet' : room.sensors.soundLevel === 'LOUD' ? 'loud' : 'high sound'}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
