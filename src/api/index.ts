@@ -1,45 +1,33 @@
 import type {
   RobotStatusData,
-  SensorReading,
   Alert,
-  PatrolMission,
   SensorHistoryPoint,
-  Room,
   DataSource,
   ParsedCommand,
-  RoomSensors,
+  RoverSensors,
 } from '@/types';
 import { simulation } from '@/engine/simulationEngine';
 
 // API abstraction layer — currently backed by the simulation engine.
-// Each method maps to a future ESP32 HTTP endpoint. To connect real hardware,
-// replace the simulation calls with fetch() to the ESP32's IP.
+// To connect real ESP32 hardware, replace simulation calls with fetch()
+// calls to the rover's IP address.
 
 export const deviceApi = {
+  /** Future: GET /status */
   getStatus(): RobotStatusData {
-    // Future: GET /status
     return simulation.getRobot();
   },
 
+  /** Future: POST /command */
   sendCommand(command: ParsedCommand): { accepted: boolean; message: string } {
-    // Future: POST /command
     switch (command.action) {
-      case 'go_to_room':
-        if (command.room) {
-          simulation.goToRoom(command.room);
-          return { accepted: true, message: `Navigating to Room ${String(command.room).padStart(2, '0')}` };
-        }
-        return { accepted: false, message: 'No room specified' };
       case 'stop':
         simulation.stopRobot();
         return { accepted: true, message: 'Rover stopped' };
-      case 'patrol':
-        simulation.startPatrol();
-        return { accepted: true, message: 'Patrol initiated' };
-      case 'move':
-        return { accepted: true, message: `Moving ${command.direction}` };
+      case 'status':
+        return { accepted: true, message: 'Status read' };
       default:
-        return { accepted: false, message: 'Command not recognized by device' };
+        return { accepted: true, message: 'Command noted' };
     }
   },
 
@@ -53,54 +41,20 @@ export const deviceApi = {
 };
 
 export const sensorApi = {
-  getReadings(): SensorReading {
-    // Future: GET /sensors
-    return simulation.getCurrentRoomSensors();
+  /** Future: GET /sensors — returns full rover sensor reading */
+  getAll(): RoverSensors {
+    return simulation.getSensors();
   },
 
-  getRoomSensors(roomId: number): RoomSensors {
-    return simulation.getRoomSensors(roomId);
-  },
-
-  getRooms(): Room[] {
-    return simulation.getRooms();
-  },
-
+  /** Future: GET /history */
   getHistory(): SensorHistoryPoint[] {
     return simulation.getHistory();
   },
 };
 
-export const patrolApi = {
-  getPatrol(): PatrolMission {
-    // Future: GET /patrol
-    return simulation.getPatrol();
-  },
-
-  start(): void {
-    simulation.startPatrol();
-  },
-
-  pause(): void {
-    simulation.pausePatrol();
-  },
-
-  resume(): void {
-    simulation.resumePatrol();
-  },
-
-  stop(): void {
-    simulation.stopPatrol();
-  },
-
-  getRecords() {
-    return simulation.getPatrolRecords();
-  },
-};
-
 export const alertApi = {
+  /** Future: GET /alerts */
   getAlerts(): Alert[] {
-    // Future: GET /alerts
     return simulation.getAlerts();
   },
 

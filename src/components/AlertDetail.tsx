@@ -1,6 +1,8 @@
-import { X, CheckCircle2, Thermometer, Droplets, AudioLines, AlertTriangle } from 'lucide-react';
+import React from 'react';
+import { X, CheckCircle2, Thermometer, Droplets, AudioLines, Wind, Activity, Flame, Radar, AlertTriangle } from 'lucide-react';
 import { useSimulation } from '@/hooks/useSimulation';
-import { alertStateColor, formatTimeSec, formatRoom } from '@/utils/style';
+import { alertStateColor, formatTimeSec } from '@/utils/style';
+import type { AlertMetric } from '@/types';
 
 interface AlertDetailProps {
   alertId: string;
@@ -8,19 +10,46 @@ interface AlertDetailProps {
   onResolve: (alertId: string) => void;
 }
 
-const METRIC_ICONS = {
+// Use React.ElementType so Lucide's ForwardRef components are accepted
+const METRIC_ICONS: Record<AlertMetric, React.ElementType> = {
   temperature: Thermometer,
-  humidity: Droplets,
-  sound: AudioLines,
-  system: AlertTriangle,
-} as const;
+  humidity:    Droplets,
+  sound:       AudioLines,
+  airQuality:  Wind,
+  tilt:        Activity,
+  smoke:       Flame,
+  obstacle:    Radar,
+  system:      AlertTriangle,
+};
+
+const METRIC_UNITS: Record<AlertMetric, string> = {
+  temperature: '°C',
+  humidity:    '%',
+  sound:       ' dB',
+  airQuality:  ' AQI',
+  tilt:        '°',
+  smoke:       '',
+  obstacle:    ' m',
+  system:      '',
+};
+
+const METRIC_LABELS: Record<AlertMetric, string> = {
+  temperature: 'TEMPERATURE',
+  humidity:    'HUMIDITY',
+  sound:       'SOUND LEVEL',
+  airQuality:  'AIR QUALITY',
+  tilt:        'TILT / ORIENTATION',
+  smoke:       'SMOKE DETECTOR',
+  obstacle:    'OBSTACLE SENSOR',
+  system:      'SYSTEM',
+};
 
 export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
-  const sim = useSimulation();
+  const sim   = useSimulation();
   const alert = sim.getAlerts().find((a) => a.id === alertId);
   if (!alert) return null;
 
-  const Icon = METRIC_ICONS[alert.metric];
+  const Icon     = METRIC_ICONS[alert.metric] ?? AlertTriangle;
   const isActive = alert.state === 'ACTIVE';
 
   const severityBorderColor =
@@ -31,9 +60,11 @@ export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
     alert.severity === 'critical' ? 'text-red' :
     alert.severity === 'warning'  ? 'text-amber' : 'text-ink-muted';
 
-  const severityGlowClass =
+  const glowClass =
     alert.severity === 'critical' ? 'hud-glow-red' :
     alert.severity === 'warning'  ? 'hud-glow-amber' : '';
+
+  const unit = METRIC_UNITS[alert.metric] ?? '';
 
   return (
     <div
@@ -41,20 +72,20 @@ export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
       onClick={onClose}
     >
       <div
-        className={`hud-panel w-full max-w-sm animate-slide-in ${severityGlowClass}`}
+        className={`hud-panel w-full max-w-sm animate-slide-in ${glowClass}`}
         style={{ borderTop: `2px solid ${severityBorderColor}` }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="hud-header">
           <div className="flex items-center gap-2">
-            <Icon className={`w-3.5 h-3.5 ${severityTextClass}`} />
+            <Icon className={`w-3.5 h-3.5 ${severityTextClass}`} strokeWidth={1.75} />
             <span className="hud-section-title">ALERT DETAIL</span>
           </div>
           <button
             onClick={onClose}
             className="text-ink-muted hover:text-ink transition-colors cursor-pointer"
-            aria-label="Close alert detail"
+            aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
@@ -62,7 +93,7 @@ export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
 
         {/* Body */}
         <div className="p-4 space-y-3 bg-[#03080A]">
-          {/* Severity + state row */}
+          {/* Severity + state */}
           <div className="flex items-center justify-between py-2 border-b border-line">
             <span className={`text-sm mono font-black tracking-widest ${severityTextClass}`}>
               {alert.severity.toUpperCase()}
@@ -72,20 +103,17 @@ export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
             </span>
           </div>
 
-          {/* Detail rows */}
+          {/* Detail grid */}
           <div className="space-y-2.5">
             {[
-              { label: 'ROOM',      value: formatRoom(alert.room) },
-              { label: 'SENSOR',    value: alert.metric.toUpperCase() },
-              { label: 'DETECTED',  value: formatTimeSec(alert.timestamp) },
-              ...(alert.value !== undefined ? [{
-                label: 'READING',
-                value: `${alert.value.toFixed(1)}${alert.metric === 'temperature' ? '°C' : alert.metric === 'humidity' ? '%' : ' dB'}`,
-              }] : []),
-              ...(alert.threshold !== undefined ? [{
-                label: 'THRESHOLD',
-                value: `${alert.threshold}${alert.metric === 'temperature' ? '°C' : alert.metric === 'humidity' ? '%' : ' dB'}`,
-              }] : []),
+              { label: 'SENSOR',   value: METRIC_LABELS[alert.metric] },
+              { label: 'DETECTED', value: formatTimeSec(alert.timestamp) },
+              ...(alert.value !== undefined
+                ? [{ label: 'READING',   value: `${alert.value.toFixed(alert.metric === 'obstacle' ? 2 : 1)}${unit}` }]
+                : []),
+              ...(alert.threshold !== undefined
+                ? [{ label: 'THRESHOLD', value: `${alert.threshold}${unit}` }]
+                : []),
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between">
                 <span className="hud-label-text">{label}</span>
@@ -101,12 +129,11 @@ export function AlertDetail({ alertId, onClose, onResolve }: AlertDetailProps) {
             </div>
           </div>
 
-          {/* Resolve action */}
           {isActive && (
             <button
               onClick={() => { onResolve(alertId); onClose(); }}
               className="btn-hud btn-hud-green w-full justify-center mt-2 cursor-pointer"
-              aria-label="Mark alert as resolved"
+              aria-label="Mark resolved"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               MARK RESOLVED

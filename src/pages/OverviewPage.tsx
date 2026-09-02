@@ -1,13 +1,18 @@
 import { useState } from 'react';
-import { PatrolMap } from '@/components/PatrolMap';
-import { RoomStatusPanel } from '@/components/RoomStatusPanel';
-import { SensorCards } from '@/components/SensorCard';
+import { useSimulation } from '@/hooks/useSimulation';
+import { alertApi } from '@/api';
 import { AlertPanel } from '@/components/AlertPanel';
 import { CommandConsole } from '@/components/CommandConsole';
 import { SimulationToggle } from '@/components/SimulationToggle';
-import { useSimulation } from '@/hooks/useSimulation';
 import { AlertDetail } from '@/components/AlertDetail';
-import { alertApi } from '@/api';
+import {
+  GlobalSafetyStatus,
+  PrimarySensorRow,
+  RobotHealthCard,
+  TiltCard,
+  SmokeCard,
+  ObstacleCard,
+} from '@/components/SensorModules';
 
 interface OverviewPageProps {
   onNavigateAlerts: () => void;
@@ -15,63 +20,47 @@ interface OverviewPageProps {
 
 export function OverviewPage({ onNavigateAlerts }: OverviewPageProps) {
   const sim = useSimulation();
-  const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<string | null>(null);
-
   const history = sim.getHistory();
-
-  const handleSelectRoom = (roomId: number) => {
-    setSelectedRoom((prev) => (prev === roomId ? null : roomId));
-  };
-
-  const handleSelectAlert = (alertId: string) => {
-    setSelectedAlert(alertId);
-    const alert = sim.getAlerts().find((a) => a.id === alertId);
-    if (alert) {
-      setSelectedRoom(alert.room);
-    }
-  };
 
   return (
     <div className="space-y-3">
-      {/* Subheader Toolbar */}
-      <div className="flex items-center justify-between pb-1">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="hud-section-title text-sm">MISSION OVERVIEW</span>
+          <span className="hud-section-title text-sm">SAFETY MONITORING</span>
           <span className="text-3xs mono text-ink-muted hidden sm:inline">
-            SECTOR 01 · FULL SYSTEM TELEMETRY
+            REAL-TIME SENSOR TELEMETRY · ALL SYSTEMS
           </span>
         </div>
         <SimulationToggle />
       </div>
 
-      {/* Hero Map + Room Status Row */}
-      {/* h-full on children requires the row itself to define a height */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-3 xl:items-stretch">
-        {/* Map wrapper: explicit height on every breakpoint so the SVG always has room */}
-        <div className="h-[380px] sm:h-[420px] lg:h-[460px]">
-          <PatrolMap selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
-        </div>
-        {/* Room panel fills the same row height on xl, scrolls internally */}
-        <div className="xl:h-[460px]">
-          <RoomStatusPanel
-            selectedRoom={selectedRoom}
-            onSelectRoom={handleSelectRoom}
-            onViewAllRooms={onNavigateAlerts}
-          />
-        </div>
+      {/* ── Row 1: Global system safety status ── */}
+      <GlobalSafetyStatus onViewAlerts={onNavigateAlerts} />
+
+      {/* ── Row 2: Primary 4-sensor telemetry ── */}
+      <PrimarySensorRow history={history} />
+
+      {/* ── Row 3: Robot Health + Tilt ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <RobotHealthCard />
+        <TiltCard />
       </div>
 
-      {/* Live Telemetry Row */}
-      <SensorCards history={history} />
+      {/* ── Row 4: Smoke + Obstacle ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <SmokeCard />
+        <ObstacleCard />
+      </div>
 
-      {/* Alert Console + Command Console Row */}
+      {/* ── Row 5: Alert Console + Command Console ── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <AlertPanel onViewAll={onNavigateAlerts} onSelectAlert={handleSelectAlert} />
-        <CommandConsole onSelectAlert={handleSelectAlert} />
+        <AlertPanel onViewAll={onNavigateAlerts} onSelectAlert={setSelectedAlert} />
+        <CommandConsole onSelectAlert={setSelectedAlert} />
       </div>
 
-      {/* Alert Detail Modal */}
+      {/* Alert detail modal */}
       {selectedAlert && (
         <AlertDetail
           alertId={selectedAlert}

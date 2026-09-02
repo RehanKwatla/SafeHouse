@@ -4,16 +4,29 @@ import { AlertRow } from '@/components/AlertRow';
 import { AlertDetail } from '@/components/AlertDetail';
 import { alertApi } from '@/api';
 import { SimulationToggle } from '@/components/SimulationToggle';
+import type { AlertMetric } from '@/types';
 
 type FilterType = 'ALL' | 'ACTIVE' | 'RESOLVED' | 'CRITICAL' | 'WARNING';
 
 const FILTERS: { id: FilterType; label: string }[] = [
-  { id: 'ALL', label: 'ALL' },
-  { id: 'ACTIVE', label: 'ACTIVE' },
+  { id: 'ALL',      label: 'ALL' },
+  { id: 'ACTIVE',   label: 'ACTIVE' },
   { id: 'RESOLVED', label: 'RESOLVED' },
   { id: 'CRITICAL', label: 'CRITICAL' },
-  { id: 'WARNING', label: 'WARNING' },
+  { id: 'WARNING',  label: 'WARNING' },
 ];
+
+// Human-readable metric labels
+const METRIC_LABELS: Record<AlertMetric, string> = {
+  temperature: 'TEMPERATURE',
+  humidity:    'HUMIDITY',
+  sound:       'SOUND',
+  airQuality:  'AIR QUALITY',
+  tilt:        'TILT',
+  smoke:       'SMOKE',
+  obstacle:    'OBSTACLE',
+  system:      'SYSTEM',
+};
 
 export function AlertsPage() {
   const sim = useSimulation();
@@ -23,103 +36,96 @@ export function AlertsPage() {
 
   const filtered = useMemo(() => {
     switch (filter) {
-      case 'ACTIVE':
-        return alerts.filter((a) => a.state === 'ACTIVE');
-      case 'RESOLVED':
-        return alerts.filter((a) => a.state === 'RESOLVED');
-      case 'CRITICAL':
-        return alerts.filter((a) => a.severity === 'critical');
-      case 'WARNING':
-        return alerts.filter((a) => a.severity === 'warning');
-      default:
-        return alerts;
+      case 'ACTIVE':   return alerts.filter((a) => a.state === 'ACTIVE');
+      case 'RESOLVED': return alerts.filter((a) => a.state === 'RESOLVED');
+      case 'CRITICAL': return alerts.filter((a) => a.severity === 'critical');
+      case 'WARNING':  return alerts.filter((a) => a.severity === 'warning');
+      default:         return alerts;
     }
   }, [alerts, filter]);
 
-  const counts = useMemo(
-    () => ({
-      all: alerts.length,
-      active: alerts.filter((a) => a.state === 'ACTIVE').length,
-      resolved: alerts.filter((a) => a.state === 'RESOLVED').length,
-      critical: alerts.filter((a) => a.severity === 'critical').length,
-      warning: alerts.filter((a) => a.severity === 'warning').length,
-    }),
-    [alerts],
-  );
+  const counts = useMemo(() => ({
+    all:      alerts.length,
+    active:   alerts.filter((a) => a.state === 'ACTIVE').length,
+    resolved: alerts.filter((a) => a.state === 'RESOLVED').length,
+    critical: alerts.filter((a) => a.severity === 'critical').length,
+    warning:  alerts.filter((a) => a.severity === 'warning').length,
+  }), [alerts]);
 
   return (
     <div className="space-y-3 select-none">
-      {/* Subheader */}
+      {/* Header */}
       <div className="flex items-center justify-between pb-1">
         <div className="flex items-center gap-3">
-          <span className="hud-section-title text-sm">ALERT OPERATIONS</span>
+          <span className="hud-section-title text-sm">ALERT CENTER</span>
           <span className="text-3xs mono text-ink-muted hidden sm:inline">
-            SAFETY THRESHOLD VIOLATIONS · SYSTEM LOG
+            SAFETY THRESHOLD VIOLATIONS · SENSOR EVENTS
           </span>
         </div>
         <SimulationToggle />
       </div>
 
-      {/* Stats row */}
+      {/* Stats */}
       <div className="hud-panel">
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-line">
           <div className="p-3.5">
-            <span className="hud-label-text">TOTAL RECORDED</span>
+            <span className="hud-label-text">TOTAL</span>
             <p className="text-2xl mono font-black text-ink mt-1 tabular-nums">{counts.all}</p>
           </div>
           <div className="p-3.5">
-            <span className="hud-label-text text-red">ACTIVE ALERTS</span>
+            <span className="hud-label-text text-red">ACTIVE</span>
             <p className="text-2xl mono font-black text-red mt-1 tabular-nums">{counts.active}</p>
           </div>
           <div className="p-3.5">
             <span className="hud-label-text text-amber">WARNINGS</span>
-            <p className="text-2xl mono font-black text-amber mt-1 tabular-nums">
-              {counts.warning}
-            </p>
+            <p className="text-2xl mono font-black text-amber mt-1 tabular-nums">{counts.warning}</p>
           </div>
           <div className="p-3.5">
             <span className="hud-label-text text-green">RESOLVED</span>
-            <p className="text-2xl mono font-black text-green mt-1 tabular-nums">
-              {counts.resolved}
-            </p>
+            <p className="text-2xl mono font-black text-green mt-1 tabular-nums">{counts.resolved}</p>
           </div>
         </div>
       </div>
 
-      {/* Filter Tabs — all use btn-hud base, active gets green variant */}
+      {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`btn-hud cursor-pointer ${
-              filter === f.id
-                ? 'btn-hud-green'
-                : 'btn-hud-inactive'
-            }`}
+            className={`btn-hud cursor-pointer ${filter === f.id ? 'btn-hud-green' : 'btn-hud-inactive'}`}
           >
             {f.label}
           </button>
         ))}
       </div>
 
-      {/* Main Alert Log Table */}
+      {/* Alert log */}
       <div className="hud-panel">
         <div className="hud-header">
-          <span className="text-xs mono font-black text-red tracking-wider">ACTIVE INCIDENT LOG</span>
-          <span className="text-3xs mono text-ink-muted">{filtered.length} INCIDENTS</span>
+          <span className="text-xs mono font-black text-red tracking-wider">INCIDENT LOG</span>
+          <span className="text-3xs mono text-ink-muted">{filtered.length} ENTRIES</span>
         </div>
 
-        <div className="p-3 space-y-2 max-h-[520px] overflow-y-auto scrollbar-thin">
+        {/* Column headers */}
+        <div className="flex items-center border-b border-line px-3 py-1 bg-[#050C0E] text-3xs mono text-ink-faint gap-3">
+          <span className="w-[64px] shrink-0">TIME</span>
+          <span className="w-[90px] shrink-0">SENSOR</span>
+          <span className="flex-1">DESCRIPTION</span>
+          <span className="w-[72px] shrink-0 text-right">STATE</span>
+        </div>
+
+        <div className="p-2 space-y-1.5 max-h-[520px] overflow-y-auto scrollbar-thin">
           {filtered.length === 0 ? (
             <div className="py-12 text-center text-xs mono text-green">
-              NO ALERTS IN THIS CATEGORY · ALL SYSTEMS OPERATING WITHIN THRESHOLDS
+              NO ALERTS IN THIS CATEGORY · ALL SENSORS WITHIN LIMITS
             </div>
           ) : (
             filtered.map((alert) => (
               <AlertRow
                 key={alert.id}
                 alert={alert}
+                metricLabel={METRIC_LABELS[alert.metric] ?? alert.metric.toUpperCase()}
                 onClick={() => setSelectedAlert(alert.id)}
               />
             ))
@@ -127,7 +133,6 @@ export function AlertsPage() {
         </div>
       </div>
 
-      {/* Alert Detail Modal */}
       {selectedAlert && (
         <AlertDetail
           alertId={selectedAlert}

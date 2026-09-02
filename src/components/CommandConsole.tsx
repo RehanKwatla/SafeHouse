@@ -10,64 +10,115 @@ interface CommandConsoleProps {
   onSelectAlert?: (alertId: string) => void;
 }
 
+// ── Response generator ────────────────────────────────────────────────────────
+
 function generateResponse(
   command: ParsedCommand,
   sim: ReturnType<typeof useSimulation>,
 ): { text: string; kind: ConsoleMessage['kind'] } {
+  const sensors = sim.getSensors();
+  const robot   = sim.getRobot();
+
   switch (command.action) {
-    case 'check_room': {
-      if (!command.room) return { text: 'Specify a room number.', kind: 'info' };
-      const s = sim.getRoomSensors(command.room);
-      const ok =
-        s.soundLevel === 'NORMAL' && s.temperature >= 18 &&
-        s.temperature <= 30 && s.humidity <= 75;
-      return ok
-        ? { text: `Room ${String(command.room).padStart(2,'0')} is within configured safety limits.`, kind: 'success' }
-        : { text: `Room ${String(command.room).padStart(2,'0')}: ${s.temperature.toFixed(1)}°C, ${Math.round(s.humidity)}% humidity, ${Math.round(s.sound)} dB — attention needed.`, kind: 'warning' };
+
+    case 'check_sensors': {
+      const issues = [];
+      if (sensors.temperature < 18 || sensors.temperature > 30)
+        issues.push(`Temp ${sensors.temperature.toFixed(1)}°C`);
+      if (sensors.humidity > 75)
+        issues.push(`Humidity ${Math.round(sensors.humidity)}%`);
+      if (sensors.soundLevel !== 'NORMAL')
+        issues.push(`Sound ${Math.round(sensors.sound)} dB`);
+      if (sensors.airQualityLevel !== 'GOOD')
+        issues.push(`AQI ${Math.round(sensors.airQuality)}`);
+      if (sensors.smoke)
+        issues.push('SMOKE DETECTED');
+      if (issues.length === 0)
+        return { text: 'All sensors within safe limits.', kind: 'success' };
+      return { text: `Attention needed — ${issues.join(', ')}.`, kind: 'warning' };
     }
-    case 'go_to_room': {
-      if (!command.room) return { text: 'Specify a room number.', kind: 'info' };
-      deviceApi.sendCommand(command);
-      return { text: `Navigating to Room ${String(command.room).padStart(2,'0')}...`, kind: 'info' };
+
+    case 'check_air': {
+      const aqi   = Math.round(sensors.airQuality);
+      const level = sensors.airQualityLevel;
+      const kind  = level === 'GOOD' ? 'success' : level === 'MODERATE' || level === 'POOR' ? 'warning' : 'critical';
+      return {
+        text: `Air quality: AQI ${aqi} — ${level}.`,
+        kind,
+      };
     }
-    case 'patrol': {
-      deviceApi.sendCommand(command);
-      return { text: 'Patrol cycle initiated. Monitoring all facility sectors.', kind: 'success' };
+
+    case 'check_tilt': {
+      const mag   = Math.sqrt(sensors.tiltX ** 2 + sensors.tiltY ** 2);
+      const state = sensors.tiltState;
+      const kind  = state === 'LEVEL' ? 'success' : state === 'TILTED' ? 'warning' : 'critical';
+      return {
+        text: `Tilt: Roll ${sensors.tiltX >= 0 ? '+' : ''}${sensors.tiltX.toFixed(1)}°, Pitch ${sensors.tiltY >= 0 ? '+' : ''}${sensors.tiltY.toFixed(1)}° — ${state}.`,
+        kind,
+      };
     }
+
+    case 'check_smoke': {
+      if (sensors.smoke)
+        return { text: 'SMOKE DETECTED — immediate attention required.', kind: 'critical' };
+      return { text: 'Smoke sensor clear. No smoke detected.', kind: 'success' };
+    }
+
+    case 'check_obstacle': {
+      const dist  = sensors.obstacleDistance.toFixed(2);
+      const state = sensors.obstacleState;
+      const kind  = state === 'CLEAR' ? 'success' : state === 'NEAR' ? 'warning' : 'critical';
+      return {
+        text: `Obstacle sensor: ${dist} m — ${state}.`,
+        kind,
+      };
+    }
+
     case 'stop': {
       deviceApi.sendCommand(command);
       return { text: 'Rover stopped and standing by.', kind: 'warning' };
     }
+
     case 'move': {
       return { text: `Moving ${command.direction}.`, kind: 'info' };
     }
+
     case 'status': {
-      const robot = sim.getRobot();
       return {
-        text: `RVR-01 ${robot.state} at Room ${String(robot.currentRoom).padStart(2,'0')}. Battery ${Math.round(robot.battery)}%, signal ${Math.round(robot.connection)}%.`,
+        text: `RVR-01 ${robot.state}. Battery ${Math.round(robot.battery)}%, signal ${Math.round(robot.connection)}%.`,
         kind: 'info',
       };
     }
+
     case 'report': {
-      const rooms = sim.getRooms();
-      const issues = rooms.filter((r) => r.safety !== 'safe');
-      if (!issues.length) return { text: 'All rooms clear. No active alerts.', kind: 'success' };
+      const activeAlerts = sim.getActiveAlerts();
+      if (activeAlerts.length === 0)
+        return { text: 'All sensors clear. No active alerts.', kind: 'success' };
       return {
-        text: `${issues.length} sector(s) need attention: ${issues.map((r) => `Room ${String(r.id).padStart(2,'0')} (${r.safety})`).join(', ')}.`,
+        text: `${activeAlerts.length} active alert(s): ${activeAlerts.map((a) => a.description).slice(0, 3).join('; ')}.`,
         kind: 'warning',
       };
     }
+
     default:
       return {
-        text: 'Unknown instruction. Try: patrol, stop, status, report, check room 2, go to room 3.',
+        text: 'Unknown command. Try: status, report, check air, check tilt, check smoke, stop.',
         kind: 'warning',
       };
   }
 }
 
-const HINTS = ['patrol', 'stop', 'status', 'check room 2', 'go to room 3', 'report'];
+// ── Hint chips — sensor-focused, not patrol-focused ──────────────────────────
 
-// Derive a display label from micState — used for button label
+const HINTS = [
+  'status',
+  'report',
+  'check air',
+  'check tilt',
+  'check smoke',
+  'stop',
+];
+
 function micLabel(state: MicState, voiceStatus: string): string {
   if (state === 'listening')   return '● LISTENING...';
   if (state === 'processing')  return '◌ PROCESSING...';
@@ -76,16 +127,16 @@ function micLabel(state: MicState, voiceStatus: string): string {
   return voiceStatus;
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsoleProps) {
   const sim = useSimulation();
+
   const [messages, setMessages] = useState<ConsoleMessage[]>([
-    { id: 'sys-init',  source: 'SYS', text: 'Ready for instruction.', timestamp: Date.now(), kind: 'info' },
-    { id: 'you-prev',  source: 'YOU', text: '"Check Room 03."',        timestamp: Date.now() - 30000 },
-    { id: 'sys-prev1', source: 'SYS', text: 'Navigating to Room 03...', timestamp: Date.now() - 25000, kind: 'info' },
-    { id: 'sys-prev2', source: 'SYS', text: 'Room 03 is within configured safety limits.', timestamp: Date.now() - 20000, kind: 'success' },
+    { id: 'sys-1', source: 'SYS', text: 'SAFEROOM OS ready. Safety monitoring active.', timestamp: Date.now(),       kind: 'info' },
+    { id: 'sys-2', source: 'SYS', text: 'All sensors online. Type a command or speak.',  timestamp: Date.now() - 3000, kind: 'success' },
   ]);
-  const [input, setInput] = useState('');
-  // Persistent "accepted" status — resets back to VOICE READY after 3.5 s
+  const [input, setInput]               = useState('');
   const [acceptedFlash, setAcceptedFlash] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
@@ -94,20 +145,33 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
   const executeCommand = useCallback((raw: string) => {
     const trimmed = raw.trim();
     if (!trimmed) return;
-    const userMsg: ConsoleMessage = { id: `you-${Date.now()}`, source: 'YOU', text: `"${trimmed}"`, timestamp: Date.now() };
+
+    const userMsg: ConsoleMessage = {
+      id: `you-${Date.now()}`,
+      source: 'YOU',
+      text: `"${trimmed}"`,
+      timestamp: Date.now(),
+    };
     const response = generateResponse(parseCommand(trimmed), sim);
-    const sysMsg: ConsoleMessage  = { id: `sys-${Date.now()}`,  source: 'SYS', text: response.text, timestamp: Date.now(), kind: response.kind };
+    const sysMsg: ConsoleMessage = {
+      id: `sys-${Date.now()}`,
+      source: 'SYS',
+      text: response.text,
+      timestamp: Date.now(),
+      kind: response.kind,
+    };
+
     setMessages((prev) => [...prev, userMsg, sysMsg]);
     setAcceptedFlash(true);
-    const t = setTimeout(() => setAcceptedFlash(false), 3500);
+    setTimeout(() => setAcceptedFlash(false), 3500);
     if (voiceEnabled) speak(response.text);
-    return () => clearTimeout(t);
   }, [sim, voiceEnabled, speak]);
 
   const { micState, start, stop } = useSpeechRecognition(executeCommand);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollRef.current)
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
   const handleSubmit = () => {
@@ -116,10 +180,9 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
     setInput('');
   };
 
-  // Button label: mic state overrides accepted flash
   const buttonLabel = micLabel(
     micState,
-    acceptedFlash ? '✓ COMMAND ACCEPTED' : 'SPEAK COMMAND...',
+    acceptedFlash ? '✓ ACCEPTED' : 'SPEAK COMMAND...',
   );
 
   const micBtnClass =
@@ -137,7 +200,9 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
         <span className="hud-section-title">COMMAND CONSOLE</span>
         <button
           onClick={toggleVoice}
-          className={`flex items-center gap-1 text-3xs mono font-bold cursor-pointer transition-colors ${voiceEnabled ? 'text-green' : 'text-ink-muted hover:text-ink'}`}
+          className={`flex items-center gap-1 text-3xs mono font-bold cursor-pointer transition-colors ${
+            voiceEnabled ? 'text-green' : 'text-ink-muted hover:text-ink'
+          }`}
           title="Toggle Voice Readout"
         >
           {voiceEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
@@ -145,11 +210,11 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
         </button>
       </div>
 
-      {/* Terminal message stream — taller than before to show 4+ messages */}
+      {/* Terminal stream */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto scrollbar-thin p-3 bg-[#03080A] space-y-1.5 font-mono text-xs"
-        style={{ minHeight: '130px', maxHeight: '200px' }}
+        style={{ minHeight: '130px', maxHeight: '220px' }}
       >
         {messages.map((msg) => {
           const isUser = msg.source === 'YOU';
@@ -159,7 +224,7 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
                 {msg.source}
               </span>
               <span className={`text-xs break-words min-w-0 ${
-                isUser             ? 'text-cyan font-semibold'
+                isUser              ? 'text-cyan font-semibold'
                 : msg.kind === 'success'  ? 'text-ink'
                 : msg.kind === 'warning'  ? 'text-amber'
                 : msg.kind === 'critical' ? 'text-red'
@@ -172,7 +237,7 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
         })}
       </div>
 
-      {/* Quick-command hint chips */}
+      {/* Hint chips */}
       <div className="px-2.5 py-1.5 bg-[#050C0E] border-t border-line flex items-center gap-1.5 overflow-x-auto scrollbar-thin flex-wrap">
         <span className="text-3xs mono text-ink-muted shrink-0">HINTS:</span>
         {HINTS.map((hint) => (
@@ -189,7 +254,6 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
 
       {/* Input bar */}
       <div className="p-2 border-t border-line bg-base-surface flex items-center gap-2">
-        {/* Voice button — full label, but shrinks gracefully */}
         <button
           onClick={() => micState === 'listening' ? stop() : start()}
           disabled={micState === 'unsupported'}
@@ -202,7 +266,6 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
           <span className="text-3xs mono font-black tracking-widest whitespace-nowrap hidden xs:inline sm:inline">
             {buttonLabel}
           </span>
-          {/* Show waveform bars when actively listening */}
           {micState === 'listening' && (
             <span className="flex items-center gap-[2px] h-3 ml-1">
               {[4, 8, 12, 6, 10, 4].map((h, i) => (
@@ -216,7 +279,6 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
           )}
         </button>
 
-        {/* Text input */}
         <input
           ref={inputRef}
           type="text"
@@ -228,7 +290,6 @@ export function CommandConsole({ onSelectAlert: _onSelectAlert }: CommandConsole
           aria-label="Enter command"
         />
 
-        {/* Send button */}
         <button
           onClick={handleSubmit}
           disabled={!input.trim()}

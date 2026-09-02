@@ -1,37 +1,52 @@
 // Core domain types for SAFEROOM
 
 export type SafetyState = 'safe' | 'warning' | 'critical';
-export type RobotMode = 'PATROL' | 'IDLE' | 'MANUAL' | 'EMERGENCY';
-export type RobotState = 'PATROLLING' | 'IDLE' | 'MOVING' | 'STOPPED' | 'CHARGING';
+export type RobotMode = 'MONITORING' | 'IDLE' | 'MANUAL' | 'EMERGENCY';
+export type RobotState = 'MONITORING' | 'IDLE' | 'MOVING' | 'STOPPED' | 'CHARGING';
 export type ConnectionStatus = 'ONLINE' | 'OFFLINE' | 'CONNECTING';
 export type DataSource = 'LIVE' | 'SIMULATION';
 export type Severity = 'critical' | 'warning' | 'info';
 export type AlertState = 'ACTIVE' | 'RESOLVED' | 'ACKNOWLEDGED';
 export type SoundLevel = 'NORMAL' | 'LOUD' | 'HIGH';
 
+// Air quality states derived from AQI value
+export type AirQualityLevel = 'GOOD' | 'MODERATE' | 'POOR' | 'CRITICAL';
+
+// Tilt / orientation states
+export type TiltState = 'LEVEL' | 'TILTED' | 'UNSTABLE';
+
+// Smoke detection state
+export type SmokeState = 'CLEAR' | 'DETECTED';
+
+// Obstacle detection state
+export type ObstacleState = 'CLEAR' | 'NEAR' | 'BLOCKED';
+
+// ── Core sensor reading (base sensors on rover) ──
 export interface SensorReading {
+  temperature: number;   // °C
+  humidity: number;      // %
+  sound: number;         // dB
+  airQuality: number;    // AQI index (0–500 scale, simulated)
+  tiltX: number;         // degrees — roll axis
+  tiltY: number;         // degrees — pitch axis
+  smoke: boolean;        // true = smoke detected
+  obstacleDistance: number; // metres (ultrasonic)
+}
+
+// Extended reading with derived/classified fields
+export interface RoverSensors extends SensorReading {
+  soundLevel: SoundLevel;
+  airQualityLevel: AirQualityLevel;
+  tiltState: TiltState;
+  obstacleState: ObstacleState;
+}
+
+// ── Legacy room sensor shape kept for safetyEngine compat ──
+export interface RoomSensors {
   temperature: number;
   humidity: number;
   sound: number;
-}
-
-export interface RoomSensors extends SensorReading {
   soundLevel: SoundLevel;
-}
-
-export interface RoomPosition {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface Room {
-  id: number;
-  name: string;
-  position: RoomPosition;
-  sensors: RoomSensors;
-  safety: SafetyState;
 }
 
 export interface RobotPosition {
@@ -45,57 +60,45 @@ export interface RobotStatusData {
   connection: number;
   mode: RobotMode;
   state: RobotState;
-  currentRoom: number;
-  targetRoom: number | null;
-  position: RobotPosition;
-  etaSeconds: number;
   sensors: {
     temperature: boolean;
     humidity: boolean;
     sound: boolean;
+    airQuality: boolean;
+    tilt: boolean;
+    smoke: boolean;
     ultrasonic: boolean;
   };
-  obstacleDistance: number;
-  obstacleDetected: boolean;
-  speed: number;
 }
+
+// Alert metric now covers all sensor types
+export type AlertMetric =
+  | 'temperature'
+  | 'humidity'
+  | 'sound'
+  | 'airQuality'
+  | 'tilt'
+  | 'smoke'
+  | 'obstacle'
+  | 'system';
 
 export interface Alert {
   id: string;
   timestamp: number;
-  room: number;
   description: string;
   severity: Severity;
   state: AlertState;
-  metric: 'temperature' | 'humidity' | 'sound' | 'system';
+  metric: AlertMetric;
   value?: number;
   threshold?: number;
 }
 
-export interface PatrolMission {
-  id: number;
-  startedAt: number;
-  rooms: number[];
-  completedRooms: number[];
-  currentRoom: number | null;
-  targetRoom: number | null;
-  progress: number;
-  status: 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'STOPPED';
-}
-
-export interface PatrolRecord {
-  id: number;
-  timestamp: number;
-  durationSec: number;
-  rooms: number[];
-  status: 'COMPLETED' | 'WARNING' | 'ABORTED';
-  alertsTriggered: number;
-}
-
 export type CommandAction =
-  | 'check_room'
-  | 'go_to_room'
-  | 'patrol'
+  | 'check_sensors'
+  | 'check_air'
+  | 'check_tilt'
+  | 'check_smoke'
+  | 'check_obstacle'
   | 'stop'
   | 'move'
   | 'status'
@@ -106,10 +109,7 @@ export type MoveDirection = 'forward' | 'backward' | 'left' | 'right';
 
 export interface ParsedCommand {
   action: CommandAction;
-  room?: number;
-  rooms?: number[];
   direction?: MoveDirection;
-  duration?: number;
   raw: string;
 }
 
@@ -125,6 +125,9 @@ export interface SafetyThresholds {
   temperature: { min: number; max: number };
   humidity: { max: number };
   sound: { max: number };
+  airQuality: { moderate: number; poor: number; critical: number };
+  tilt: { tilted: number; unstable: number };
+  obstacleDistance: { near: number; blocked: number };
 }
 
 export interface SensorHistoryPoint {
@@ -133,6 +136,7 @@ export interface SensorHistoryPoint {
   temperature: number;
   humidity: number;
   sound: number;
+  airQuality: number;
 }
 
 export interface SafetyEvaluation {
@@ -141,7 +145,7 @@ export interface SafetyEvaluation {
 }
 
 export interface SafetyViolation {
-  metric: keyof SafetyThresholds;
+  metric: AlertMetric;
   message: string;
   humanMessage: string;
   severity: Severity;
